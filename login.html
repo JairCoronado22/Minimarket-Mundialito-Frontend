@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Acceso al sistema de gestión de Minimarket El Mundialito."
+    />
+    <title>Acceso | El Mundialito</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/tailwind.config.js"></script>
+    <script type="module" src="assets/js/login.js"></script>
+  </head>
+  <body
+    class="flex min-h-screen flex-col justify-between bg-background font-body-md text-body-md text-on-surface selection:bg-primary-container selection:text-on-primary"
+  >
+    <header
+      class="flex w-full items-center justify-between px-margin py-space-lg"
+    >
+      <a href="index.html" class="flex items-center gap-space-sm">
+        <span
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary shadow-sm"
+        >
+          <span class="material-symbols-outlined text-[22px]">storefront</span>
+        </span>
+        <span class="flex flex-col">
+          <span
+            class="font-headline-sm text-headline-sm leading-tight tracking-tight text-primary"
+            >El Mundialito</span
+          >
+          <span
+            class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant"
+            >Minimarket &amp; POS</span
+          >
+        </span>
+      </a>
+      <span
+        class="flex items-center gap-space-xs rounded-full bg-surface-container px-space-sm py-space-xs text-on-surface-variant"
+      >
+        <span class="h-2 w-2 rounded-full bg-tertiary-fixed-dim"></span>
+        <span class="font-label-sm text-label-sm">Terminal v2.4</span>
+      </span>
+    </header>
+
+    <main class="flex w-full flex-1 flex-col items-center justify-center px-margin py-space-lg">
+      <section class="w-full max-w-xl">
+        <div
+          class="overflow-hidden rounded-xl bg-surface-container-lowest p-space-lg shadow-[0_20px_45px_-12px_rgba(11,28,48,0.12)] sm:p-margin-lg"
+        >
+          <div class="flex flex-col items-center text-center">
+            <span
+              class="mb-space-md inline-flex items-center gap-space-xs rounded-full bg-surface-container-low px-space-md py-space-xs text-primary"
+            >
+              <span class="material-symbols-outlined text-[16px]">security</span>
+              <span
+                class="font-label-code text-label-code uppercase tracking-wider"
+                >Sistema de Gestión Interna v3.2</span
+              >
+            </span>
+            <span
+              class="mb-space-sm flex h-16 w-16 items-center justify-center rounded-xl bg-primary-container text-on-primary shadow-md"
+            >
+              <span class="material-symbols-outlined text-[34px]">storefront</span>
+            </span>
+            <h1
+              class="font-headline-lg text-headline-lg tracking-tight text-on-surface"
+            >
+              Minimarket El Mundialito
+            </h1>
+            <p class="mt-space-xs text-on-surface-variant">
+              Sistema de Gestión y Control Integral
+            </p>
+            <span
+              class="mt-space-md inline-flex items-center gap-space-xs rounded-full bg-surface-container px-space-md py-space-xs text-tertiary"
+            >
+              <span class="relative flex h-2.5 w-2.5">
+                <span
+                  class="absolute inline-flex h-full w-full animate-ping rounded-full bg-tertiary-fixed-dim opacity-75"
+                ></span>
+                <span
+                  class="relative inline-flex h-2.5 w-2.5 rounded-full bg-tertiary"
+                ></span>
+              </span>
+              <span class="font-label-sm text-label-sm font-semibold">
+                Conexión local sincronizada · Surco · Sede 01
+              </span>
+            </span>
+          </div>
+
+          <div
+            class="mt-space-lg flex items-start gap-space-sm rounded-lg bg-surface-container-low p-space-md"
+          >
+            <span class="material-symbols-outlined mt-0.5 text-[20px] text-primary"
+              >alt_route</span
+            >
+            <div>
+              <span class="block font-label-md text-label-md text-primary"
+                >Enrutamiento por rol</span
+              >
+              <p class="mt-0.5 text-on-surface-variant">
+                Ingresa como cajero para abrir el POS o como administrador para
+                ir al dashboard.
+              </p>
+            </div>
+          </div>
+
+          <form id="loginForm" class="mt-space-lg space-y-space-md text-left">
+            <div class="space-y-space-xs">
+              <label
+                class="block font-label-md text-label-md text-on-surface"
+                for="usernameInput"
+                >Usuario o DNI operativo</label
+              >
+              <div class="relative flex items-center">
+                <span
+                  class="pointer-events-none absolute left-space-md material-symbols-outlined text-[20px] text-on-surface-variant"
+                  >badge</span
+                >
+                <input
+                  class="h-12 w-full rounded-lg bg-surface pl-11 pr-space-md shadow-sm outline-none transition-all placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+                  id="usernameInput"
+                  autocomplete="username"
+                  placeholder="Ingresa tu DNI o código de colaborador"
+                  required
+                  type="text"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-space-xs">
+              <div class="flex items-center justify-between">
+                <label
+                  class="block font-label-md text-label-md text-on-surface"
+                  for="passwordInput"
+                  >Contraseña institucional</label
+                >
+                <span class="font-label-sm text-label-sm text-on-surface-variant"
+                  >PIN o clave operativa</span
+                >
+              </div>
+              <div class="relative flex items-center">
+                <span
+                  class="pointer-events-none absolute left-space-md material-symbols-outlined text-[20px] text-on-surface-variant"
+                  >lock</span
+                >
+                <input
+                  class="h-12 w-full rounded-lg bg-surface pl-11 pr-12 shadow-sm outline-none transition-all placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+                  id="passwordInput"
+                  autocomplete="current-password"
+                  placeholder="Ingresa tu contraseña"
+                  required
+                  type="password"
+                />
+                <button
+                  aria-label="Mostrar contraseña"
+                  aria-pressed="false"
+                  class="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-on-surface-variant transition-colors hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                  id="togglePasswordBtn"
+                  type="button"
+                >
+                  <span
+                    class="material-symbols-outlined text-[20px]"
+                    id="passwordToggleIcon"
+                    >visibility</span
+                  >
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-space-sm pt-space-xs sm:grid-cols-2">
+              <div
+                class="flex items-center gap-space-xs rounded-lg bg-surface-container-low p-space-sm"
+              >
+                <span class="material-symbols-outlined text-[18px] text-secondary"
+                  >point_of_sale</span
+                >
+                <span class="flex min-w-0 flex-col">
+                  <span
+                    class="truncate font-label-sm text-label-sm text-on-surface-variant"
+                    >Terminal asignado</span
+                  >
+                  <span
+                    class="truncate font-label-md text-label-md font-bold text-on-surface"
+                    >Caja 01 · Principal</span
+                  >
+                </span>
+              </div>
+              <label
+                class="flex cursor-pointer select-none items-center gap-space-sm rounded-lg bg-surface p-space-sm transition-colors hover:bg-surface-container-low"
+              >
+                <input
+                  checked
+                  class="h-4 w-4 cursor-pointer rounded text-primary-container focus:ring-primary"
+                  id="rememberTerminal"
+                  type="checkbox"
+                />
+                <span class="font-label-md text-label-md leading-tight text-on-surface-variant"
+                  >Recordar terminal en este equipo</span
+                >
+              </label>
+            </div>
+
+            <div class="pt-space-xs">
+              <div class="mb-space-xs flex items-center justify-between">
+                <span
+                  class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant"
+                  >Simulador de acceso rápido</span
+                >
+                <span class="font-label-sm text-label-sm font-semibold text-primary"
+                  >Demo interna</span
+                >
+              </div>
+              <div class="flex flex-wrap gap-space-xs">
+                <button
+                  class="flex min-w-[190px] flex-1 items-center justify-center gap-space-xs rounded-lg bg-surface px-space-sm py-2 transition-all hover:bg-surface-container active:scale-[0.98]"
+                  data-demo-role="cajero"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined text-[16px] text-tertiary"
+                    >shopping_cart</span
+                  >
+                  <span class="truncate font-label-sm text-label-sm"
+                    >Rosa Quispe · Caja/POS</span
+                  >
+                </button>
+                <button
+                  class="flex min-w-[190px] flex-1 items-center justify-center gap-space-xs rounded-lg bg-surface px-space-sm py-2 transition-all hover:bg-surface-container active:scale-[0.98]"
+                  data-demo-role="admin"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined text-[16px] text-primary"
+                    >admin_panel_settings</span
+                  >
+                  <span class="truncate font-label-sm text-label-sm"
+                    >Carlos Mendoza · Admin</span
+                  >
+                </button>
+              </div>
+            </div>
+
+            <div
+              aria-live="polite"
+              class="hidden rounded-lg bg-surface-container p-space-sm text-center"
+              id="roleFeedback"
+            >
+              <span
+                class="font-label-md text-label-md font-bold text-primary"
+                id="roleFeedbackText"
+              ></span>
+            </div>
+            <p
+              aria-live="polite"
+              class="hidden rounded-lg bg-error-container p-space-sm text-center text-on-error-container"
+              id="loginError"
+              role="alert"
+            ></p>
+            <button
+              class="mt-space-md flex h-14 w-full items-center justify-center gap-space-sm rounded-xl bg-primary-container font-label-lg text-label-lg text-on-primary shadow-md transition-all hover:opacity-95 active:translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
+              id="submitButton"
+              type="submit"
+            >
+              <span>Ingresar al sistema</span>
+              <span class="material-symbols-outlined text-[20px]">login</span>
+            </button>
+          </form>
+
+          <div class="mt-space-lg space-y-space-xs border-t border-outline-variant pt-space-md text-center">
+            <p class="text-on-surface-variant">
+              Acceso de demostración. La autenticación real requiere un servicio
+              de usuarios conectado.
+            </p>
+            <button
+              class="font-label-md text-label-md text-primary underline transition-colors hover:text-primary-container"
+              id="supportToggle"
+              type="button"
+            >
+              ¿Problemas con tu credencial? Contactar a Sistemas / Soporte TI
+            </button>
+            <div
+              class="hidden rounded-lg bg-surface-container-high p-space-sm text-center"
+              id="supportToast"
+            >
+              <span class="block font-label-sm text-label-sm font-bold"
+                >Mesa de Ayuda TI Interna</span
+              >
+              <span class="block text-on-surface-variant"
+                >Anexo interno: 104 · WhatsApp Operaciones: +51 987 654 321</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="mt-space-md flex items-center justify-between px-space-sm text-on-surface-variant"
+        >
+          <span class="flex items-center gap-space-xs font-label-sm text-label-sm">
+            <span class="material-symbols-outlined text-[16px] text-tertiary"
+              >wifi_protected_setup</span
+            >
+            Gateway POS activo
+          </span>
+          <span class="font-label-code text-label-code text-outline"
+            >SRV-SURCO-01</span
+          >
+        </div>
+      </section>
+    </main>
+
+    <footer class="w-full px-margin py-space-md text-center text-on-surface-variant">
+      <span class="font-label-md text-label-md">© Minimarket El Mundialito · Sistema de Caja e Inventario</span>
+    </footer>
+  </body>
+</html>
