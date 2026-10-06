@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="shell-type" content="web_dashboard" />
+    <meta
+      name="description"
+      content="Panel de gestión de compras y reposición inteligente para El Mundialito."
+    />
+    <title>Retail Pulse | El Mundialito</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/tailwind.config.js"></script>
+    <script type="module" src="assets/js/main.js"></script>
+  </head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <div
+      id="app-error"
+      class="hidden m-4 rounded-lg bg-error-container p-4 text-on-error-container"
+      role="alert"
+    ></div>
+    <div id="sidebar-mount"></div>
+    <div class="pl-72">
+      <div id="topbar-mount"></div>
+      <main class="relative min-h-screen bg-surface pt-16">
+        <div class="flex w-full flex-col">
+          <div id="purchasing-overview-mount"></div>
+          <div id="restock-suggestions-mount"></div>
+          <div id="module-view-mount" class="hidden"></div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

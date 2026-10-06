@@ -1,0 +1,743 @@
+<!-- Main Split Canvas: Table & Live Drafting Rail -->
+<section class="px-margin-lg py-space-md flex flex-col gap-space-lg">
+<!-- Left Main Column: Smart Restock Suggestions (8 cols) -->
+<div class="flex flex-col gap-space-md">
+<!-- Filter Bar & Segmented Tabs -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<!-- Tab Pills -->
+<div class="flex flex-wrap items-center gap-space-xs">
+<button class="px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2 shadow-sm font-bold" aria-current="page">
+<span>Urgentes</span>
+<span class="px-1.5 py-0.2 rounded-full bg-error text-on-error font-label-sm text-label-sm">12</span>
+</button>
+</div>
+<!-- Quick Filters & View Actions -->
+<div class="flex items-center gap-space-xs self-end md:self-auto">
+<div class="relative">
+<select class="h-9 pl-3 pr-8 bg-surface-container-low text-on-surface font-label-md text-label-md rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary">
+<option>Todos los Proveedores</option>
+<option>Alicorp S.A.A.</option>
+<option>Leche Gloria S.A.</option>
+<option>Arca Continental Lindley</option>
+<option>Mondelez Perú</option>
+<option>Procter &amp; Gamble</option>
+</select>
+<span class="material-symbols-outlined text-[18px] text-outline absolute right-2 top-2 pointer-events-none">arrow_drop_down</span>
+</div>
+<button class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-surface-container-low px-2.5 text-label-sm font-label-sm font-semibold text-on-surface-variant transition-colors hover:text-primary" type="button" data-table-details-toggle aria-expanded="false">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Más datos</span>
+</button>
+<button class="w-9 h-9 rounded-lg bg-surface-container-low text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button" title="Refrescar algoritmo con ventas POS">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+</button>
+</div>
+</div>
+<!-- Algorithmic Suggestion Table Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Table Control Strip -->
+<div class="p-space-md bg-surface-container-low flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-md">
+<label class="flex items-center gap-2 cursor-pointer font-label-md text-label-md text-on-surface font-semibold select-none">
+<input class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" id="selectAllCheckbox" type="checkbox"/>
+<span>Seleccionar Urgentes (6 recomendados)</span>
+</label>
+<span class="text-outline font-label-sm text-label-sm">|</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mostrando <strong class="text-on-surface">6</strong> de 12 SKUs críticos</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest text-primary hover:bg-surface text-label-sm font-label-sm font-semibold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">done_all</span> Aprobar Seleccionados
+            </button>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest text-outline hover:text-on-surface text-label-sm font-label-sm shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">tune</span> Configurar Margen
+            </button>
+</div>
+</div>
+<!-- Density Interactive Table -->
+<div class="overflow-x-auto">
+<table class="suggestion-table w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-3 px-space-md w-8">
+<span class="sr-only">Check</span>
+</th>
+<th class="py-3 px-space-sm">Producto &amp; Identificación</th>
+<th class="py-3 px-space-sm text-center">Stock góndola / almacén</th>
+<th class="py-3 px-space-sm text-center">Rotación / cobertura</th>
+<th class="py-3 px-space-sm">Proveedor Sugerido</th>
+<th class="py-3 px-space-sm text-center">Cant. Sugerida</th>
+<th class="py-3 px-space-sm text-right">Costo unitario</th>
+<th class="py-3 px-space-sm text-right">Subtotal</th>
+<th class="py-3 px-space-md text-center">Acción</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low font-body-md text-body-md">
+<!-- Item 1: Leche Gloria Entera -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Canned evaporated whole milk tin blue label canned dairy packaging professional food product photography clear studio white background soft retail commercial lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnGZ4VIrSvjP7Pif-XI0DigSVITmwY2kraxMOxq-Jlj99RlCG0Nv455LMEz9-VzxRAkunUhnFZ0_AF3bmVu2hAKBm_EnorphW06W76a1VAzPWtviucHBNFxTiOV3_TCwWcNuXXJ7bezzDToxxAiFaw5tqR08NEHlrNLdmmqiLQZm4Yizvl7YhS0bYGJ_F155qiC-bFHniSDdhKyEGxEM4ytTaIE_Cz7xgQmZ3p6weG"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Leche Gloria Entera 400g</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7750106001</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Lácteos</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Góndola: 4 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 12 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant font-bold">Total: 16 uds</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">32 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-extrabold animate-pulse">
+                      ¡0.5 días (12h)!
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Leche Gloria S.A.</span>
+<span class="font-body-sm text-body-sm text-outline">Crédito 30d · Min: S/ 1,200</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold mt-0.5">Promo 10+1 activa</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="48"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">2 Cajas (x24)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 3.85</span>
+<span class="text-tertiary font-label-sm text-label-sm block font-semibold">-2.5% vs pactado</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 184.80</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Sumado a la orden de compra">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Pausar o posponer sugerencia">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 2: Aceite Primor Premium 900ml -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Clear bottle of premium cooking vegetable oil with golden liquid label clear lighting commercial grocery product retail studio shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlcWMxbZNsFu0qrmeBcm05CQzqjU8XsLs4PSvBlm_mVxZx5DLS_cy8XUU3pss_80yDXnRuk_JydcBT3qwmK1Be7JwOACaWf2l60cPEfP3oVxuNn0RNxlkkfspKEihJni_fJ7T4GtOgMTwsQaLPfUxqLGRab5XedDajuiEDz4Bc0h_E7PPG6kwuE_1ODq6SqlGtZpxtFO8N3X6LjGFm8EEPeouvvGg_rZtaOKczfuVg"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Aceite Primor Premium 900ml</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7750182004</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Abarrotes</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Góndola: 0 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 6 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-error font-bold">Total: 6 uds (Quiebre)</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">18 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-extrabold">
+                      0.3 días (8h)
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Alicorp S.A.A.</span>
+<span class="font-body-sm text-body-sm text-outline">Contado / 15d · Pedido Mín: S/ 1,500</span>
+<span class="font-label-sm text-label-sm text-primary font-bold mt-0.5">Distribuidor oficial</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="60"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">5 Cajas (x12)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 8.40</span>
+<span class="text-outline font-label-sm text-label-sm block">Precio estable</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 504.00</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Aprobado en borrador">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Descartar sugerencia">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 3: Coca-Cola 500ml Retornable -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Glass bottle of classic chilled carbonated cola soda with condensation droplets red cap commercial beverage retail packshot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuvdQW2Qylyc-7X7nwU4-iyD4-XCt7_IirEaiwj5HZ1UldGSzZn6bJxF6FKb7v_sD3cN_YrA8VAd6pQgGdNR6WJnbgbhqnIWWrSRZ3K83iiaNIyvgitb88diG5mGvgI6irQEpN0qfaZx9azjMH7BH26fCh_ns_-Fe1eou1GizQRCtP6-2kGnlD8rC0y9z-70LXMUx9gqQNXCL-gSefSoDd4N2gv6gRc7JOPBRcUjfs"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Coca-Cola 500ml Retornable</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7750890002</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Bebidas</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Góndola: 18 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 24 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant font-bold">Total: 42 uds</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">54 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+                      0.8 días (Alerta)
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Arca Continental Lindley</span>
+<span class="font-body-sm text-body-sm text-outline">Semanal (Jueves) · Cambio envase</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold mt-0.5">Bono cajón vacío</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="120"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">10 Cajones (x12)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 2.20</span>
+<span class="text-tertiary font-label-sm text-label-sm block font-semibold">+6 uds bonificación</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 264.00</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Aprobado">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Descartar">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 4: Arroz Costeño Extra 1kg -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="One kilogram sealed bag of clean white long grain extra rice packaging retail food product white background sharp commercial lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAaNIppptyTdTcLzzJywj_-EBt_nPxPe0rvQQBbKWa-dOIf1BMkKUVSWHJGhAcvYypy105hg462hHee_LaaCIInrh3JCvEyQLwzCvPxiPe-xpMBM7dBtXVCOT0D8Z5JGSyObyI5v2kVTQJxgXPGlwuWCZsR0ty1Ar2IX4A6Se1wLlDGtFqcdLIqVJj2BZQ4Lr7K-57kzriIeoJ2hgXUAU_WvdGX67poBYjVfVHlAeZ"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Arroz Costeño Extra 1kg</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7750345009</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Abarrotes</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Góndola: 8 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 15 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant font-bold">Total: 23 uds</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">25 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-extrabold">
+                      0.9 días
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Alicorp S.A.A.</span>
+<span class="font-body-sm text-body-sm text-outline">Plazo 15d · Pedido mínimo</span>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Sin promo</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="100"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">2 Fardos (x50)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 4.45</span>
+<span class="text-outline font-label-sm text-label-sm block">Tarifa regular</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 445.00</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Aprobado">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Descartar">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 5: Galletas Casino Menta x6 -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Pack of chocolate mint sandwich cookies green wrapper snack food retail presentation bright lighting isolated clean studio shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9xf4TgcGoQE7RBO2rZBwCmHtBnIhQrr-rW65WlP078CTs2pA9jX84meZQicaZgCNL2E4ngcJRSm7xWrP37xjcyVCETeqT_IVUywBRdozIBU-fXSiZrqiPOCo5IwRtiL6guApAOYD18EZ0Q-vvYMY2pOF1ppVqFSK_DIZVQ911OWW2_ZsEYyirycn1wv0AAfOxM4o5KZH01pF3dMyD9nCpwOHpDkf_NT5RsncM6TwW"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Galletas Casino Menta Paquete x6</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7750239012</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Golosinas</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Góndola: 2 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 10 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant font-bold">Total: 12 uds</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">14 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-extrabold">
+                      0.8 días
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Alicorp S.A.A.</span>
+<span class="font-body-sm text-body-sm text-outline">Crédito 15d · En consolidado</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold mt-0.5">Bono +1 display</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="36"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">3 Displays (x12)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 4.80</span>
+<span class="text-tertiary font-label-sm text-label-sm block font-semibold">-4% x bulto</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 172.80</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Aprobado">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Descartar">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 6: Detergente Ariel 500g Regular -->
+<tr class="hover:bg-surface/80 transition-colors group">
+<td class="py-space-md px-space-md">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-lg object-cover bg-surface-container shrink-0" data-alt="Bag of laundry detergent powder green and blue clean packaging commercial retail hygiene goods on isolated studio white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbJ5mA6cCt381hPVozXehJWMGutCzecbLBcNRHTs0691PCuaigZcFPIC6o1WVqpb696He4WsUJpEe7yr1d0DaPsCcZKn3SMAZxxhzRov4OfCVjr32hSe1BVcvPCjET0JzE8DYRdJyU1xu_GeqJSQzshM2-p1-cBS2i0e5SfoFOv5f6e4TMl--u-O9reV537LnG7WZssY-lViunCMb6G4UOfbEsfnVpWDrU9P1LBh84"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">Detergente Ariel Doble Poder 500g</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-label-code text-label-code text-outline font-semibold">SKU: 7501001156</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Limpieza</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center gap-1">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Góndola: 5 uds
+                      </span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+                        Trastienda: 10 uds
+                      </span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant font-bold">Total: 15 uds</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="flex flex-col items-center">
+<span class="font-label-md text-label-md font-bold text-on-surface">11 uds / día</span>
+<span class="px-2 py-0.5 mt-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+                      1.3 días
+                    </span>
+</div>
+</td>
+<td class="py-space-md px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Procter &amp; Gamble</span>
+<span class="font-body-sm text-body-sm text-outline">Pago 30d · Min: S/ 800</span>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Envío incluido</span>
+</div>
+</td>
+<td class="py-space-md px-space-sm text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-0.5">
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">-</button>
+<input class="w-10 h-7 text-center bg-transparent font-label-code text-label-code font-bold text-on-surface focus:outline-none" type="text" value="36"/>
+<button class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest rounded transition-colors font-bold">+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-1">3 Fardos (x12)</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 4.90</span>
+<span class="text-outline font-label-sm text-label-sm block">Precio de lista</span>
+</td>
+<td class="py-space-md px-space-sm text-right">
+<span class="font-label-code text-label-code font-bold text-primary text-[15px]">S/ 176.40</span>
+</td>
+<td class="py-space-md px-space-md text-center">
+<div class="flex items-center justify-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center hover:opacity-90 transition-opacity" title="Aprobado">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="w-8 h-8 rounded-lg text-outline hover:text-error hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Descartar">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination / Summary -->
+<div class="p-space-md bg-surface-container-low flex flex-wrap items-center justify-between gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
+<div class="flex items-center gap-2">
+<span>Filas por página:</span>
+<select class="bg-surface-container-lowest px-2 py-1 rounded text-on-surface font-semibold focus:outline-none">
+<option>10</option>
+<option>25</option>
+<option>50</option>
+</select>
+<span class="ml-2">1-6 de 12 sugerencias</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="w-8 h-8 rounded bg-surface-container-lowest flex items-center justify-center text-outline hover:text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="px-3 py-1 rounded bg-primary text-on-primary font-bold">1</span>
+<button class="w-8 h-8 rounded bg-surface-container-lowest flex items-center justify-center text-outline hover:text-on-surface shadow-sm">
+              2
+            </button>
+<button class="w-8 h-8 rounded bg-surface-container-lowest flex items-center justify-center text-outline hover:text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Real-time Velocity & POS Machine Learning Banner -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">analytics</span>
+</div>
+<div>
+<h2 class="font-label-lg text-label-lg text-on-surface font-bold">Ajuste de Previsión por Fin de Mes &amp; Fines de Semana</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              El algoritmo pondera +18% en velocidad para la categoría Lácteos y Bebidas por cierre de quincena en Cajas 01 y 02.
+            </p>
+</div>
+</div>
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md font-bold shadow-sm hover:bg-surface transition-colors shrink-0">
+          Ver Modelo Predictivo
+        </button>
+</div>
+</div>
+<!-- Consolidated purchase orders -->
+<div class="flex flex-col gap-space-md">
+<!-- Panel Header -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">
+            Borrador de OCs Consolidadas
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">
+            3 órdenes agrupadas en proceso
+          </span>
+</div>
+<div class="w-9 h-9 rounded-xl bg-primary-container text-on-primary flex items-center justify-center font-bold font-label-sm text-label-sm">
+          3
+        </div>
+</div>
+<div class="grid grid-cols-1 gap-space-md lg:grid-cols-3">
+<!-- Supplier Card 1: Alicorp S.A.A. (Order ready to emit) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col group">
+<div class="p-space-md bg-surface-container flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary font-bold text-label-md">
+              AL
+            </div>
+<div>
+<h3 class="font-label-lg text-label-lg font-bold text-on-surface">Alicorp S.A.A.</h3>
+<span class="font-label-code text-label-code text-outline">RUC: 20100055237</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> Mínimo Superado
+          </span>
+</div>
+<div class="p-space-md flex flex-col gap-space-sm">
+<!-- Item preview pills -->
+<div class="flex flex-col gap-1.5 font-body-sm text-body-sm text-on-surface">
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded">
+<span class="truncate max-w-[190px]">Aceite Primor 900ml (x60)</span>
+<span class="font-label-code text-label-code font-bold">S/ 504.00</span>
+</div>
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded">
+<span class="truncate max-w-[190px]">Arroz Costeño Extra 1kg (x100)</span>
+<span class="font-label-code text-label-code font-bold">S/ 445.00</span>
+</div>
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded">
+<span class="truncate max-w-[190px]">Galletas Casino Menta (x36)</span>
+<span class="font-label-code text-label-code font-bold">S/ 172.80</span>
+</div>
+</div>
+<!-- Threshold progress info -->
+<div class="pt-space-xs flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline">Pedido mínimo Alicorp: S/ 1,500.00</span>
+<span class="text-tertiary font-bold">122% Alcanzado</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-tertiary-fixed-dim h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Total & Emisión Action -->
+<div class="mt-space-xs pt-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Total Consolidado</span>
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">S/ 1,840<span class="text-[15px] font-semibold text-outline">.00</span></span>
+</div>
+<button class="px-space-md py-2.5 rounded-xl bg-tertiary text-on-tertiary font-label-md text-label-md font-bold shadow hover:bg-tertiary-container transition-all flex items-center gap-1.5 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Emitir OC-2024-094</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Supplier Card 2: Leche Gloria S.A. (Below minimum, helper incentive) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-space-md bg-surface-container-high flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary font-bold text-label-md">
+              GL
+            </div>
+<div>
+<h3 class="font-label-lg text-label-lg font-bold text-on-surface">Leche Gloria S.A.</h3>
+<span class="font-label-code text-label-code text-outline">RUC: 20100190797</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">hourglass_top</span> Faltan S/ 220
+          </span>
+</div>
+<div class="p-space-md flex flex-col gap-space-sm">
+<div class="flex flex-col gap-1.5 font-body-sm text-body-sm text-on-surface">
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded">
+<span class="truncate max-w-[190px]">Leche Gloria Entera 400g (x48)</span>
+<span class="font-label-code text-label-code font-bold">S/ 184.80</span>
+</div>
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded">
+<span class="truncate max-w-[190px]">Yogurt Gloria Fresa 1kg (x24)</span>
+<span class="font-label-code text-label-code font-bold">S/ 155.20</span>
+</div>
+</div>
+<!-- Threshold progress info with warning -->
+<div class="pt-space-xs flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-secondary font-bold">S/ 980.00 de S/ 1,200.00 para flete bonificado</span>
+<span class="text-on-surface-variant font-code">81%</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary-container h-full rounded-full" style="width: 81%;"></div>
+</div>
+</div>
+<!-- Smart Quick Add Helper -->
+<div class="p-space-xs bg-surface-container-low rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">add_circle</span>
+<span class="text-label-sm font-label-sm">Sugerencia: +2 CJ Leche Chocolatada</span>
+</div>
+<button class="px-2 py-0.5 rounded bg-surface-container-lowest text-primary text-label-sm font-label-sm font-bold shadow-sm hover:bg-surface">
+              + S/ 240
+            </button>
+</div>
+<!-- Total & Emisión Action -->
+<div class="mt-space-xs pt-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Total Consolidado</span>
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">S/ 980<span class="text-[15px] font-semibold text-outline">.00</span></span>
+</div>
+<button class="px-space-md py-2.5 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors flex items-center gap-1.5">
+<span>Borrador OC-095</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Supplier Card 3: Arca Continental Lindley -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-space-md bg-surface-container flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary font-bold text-label-md">
+              AC
+            </div>
+<div>
+<h3 class="font-label-lg text-label-lg font-bold text-on-surface">Arca Continental Lindley</h3>
+<span class="font-label-code text-label-code text-outline">RUC: 20415474321</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">
+            Ruta Jueves
+          </span>
+</div>
+<div class="p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between py-1 bg-surface-container-low px-2 rounded font-body-sm text-body-sm">
+<span class="truncate max-w-[190px]">Coca-Cola &amp; Inka Kola 500ml Ret.</span>
+<span class="font-label-code text-label-code font-bold text-on-surface">S/ 1,250.00</span>
+</div>
+<div class="mt-space-xs pt-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Total Consolidado</span>
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">S/ 1,250<span class="text-[15px] font-semibold text-outline">.00</span></span>
+</div>
+<button class="px-space-md py-2.5 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-bold shadow hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Emitir OC-2024-096</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+<span class="font-label-md text-label-md font-bold text-on-surface">Canales de despacho</span>
+<div class="grid grid-cols-3 gap-space-xs">
+<button class="p-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface flex flex-col items-center justify-center gap-1 transition-colors text-center">
+<span class="material-symbols-outlined text-[20px] text-tertiary">chat</span>
+<span class="font-label-sm text-label-sm font-semibold">WhatsApp</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface flex flex-col items-center justify-center gap-1 transition-colors text-center">
+<span class="material-symbols-outlined text-[20px] text-primary">mail</span>
+<span class="font-label-sm text-label-sm font-semibold">EDI / Correo</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface flex flex-col items-center justify-center gap-1 transition-colors text-center">
+<span class="material-symbols-outlined text-[20px] text-outline">picture_as_pdf</span>
+<span class="font-label-sm text-label-sm font-semibold">Descargar PDF</span>
+</button>
+</div>
+</div>
+</div>
+</section>

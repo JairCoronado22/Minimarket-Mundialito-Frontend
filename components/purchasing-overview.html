@@ -1,0 +1,140 @@
+<!-- Dynamic Notification Bar / Sync Status -->
+<section class="px-margin-lg pt-space-lg pb-space-sm flex flex-col gap-space-md">
+<!-- Breadcrumb & Header Title Area -->
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+<span class="hover:text-primary transition-colors cursor-pointer">Proveedores &amp; Compras</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="ml-space-xs px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            Algoritmo V3.2 Activo
+          </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+          Compras y reposición
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-4xl">
+          Prioriza quiebres de stock y consolida pedidos por proveedor.
+        </p>
+</div>
+<!-- Quick Operational Action Buttons -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<details class="relative">
+<summary class="flex cursor-pointer list-none items-center gap-space-xs rounded-xl bg-surface-container-lowest px-space-md py-2.5 font-label-lg text-label-lg text-on-surface shadow-sm hover:bg-surface-container">
+<span class="material-symbols-outlined text-[18px] text-outline">more_horiz</span>
+<span>Más acciones</span>
+</summary>
+<div class="absolute right-0 top-full z-50 mt-2 flex min-w-max flex-col gap-space-xs rounded-xl bg-surface-container-lowest p-space-sm shadow-lg">
+<button class="px-space-md py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-label-lg text-label-lg shadow-sm hover:bg-surface-container transition-all flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-outline">history</span>
+<span>Historial de OCs</span>
+</button>
+<button class="px-space-md py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-label-lg text-label-lg shadow-sm hover:bg-surface-container transition-all flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-outline">upload_file</span>
+<span>Importar Catálogo Proveedor</span>
+</button>
+</div>
+</details>
+<button class="px-space-lg py-2.5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg shadow-md hover:bg-primary-container transition-all flex items-center gap-space-xs active:translate-y-0.5">
+<span class="material-symbols-outlined text-[20px] text-tertiary-fixed">bolt</span>
+<span>Generar OC Consolidada</span>
+<span class="ml-1 px-1.5 py-0.2 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm">3 OCs</span>
+</button>
+</div>
+</div>
+<details class="group rounded-xl bg-surface-container-lowest shadow-sm">
+<summary class="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-space-sm rounded-xl px-space-md py-space-sm font-label-md text-label-md text-on-surface hover:bg-surface-container-low">
+<span class="font-bold">Resumen rápido</span>
+<span class="flex min-w-0 flex-wrap items-center justify-start gap-x-space-md gap-y-space-xs text-on-surface-variant">
+<span class="text-error font-semibold">12 urgentes</span>
+<span>Presupuesto S/ 15,800</span>
+<span>3 OCs · S/ 7,890</span>
+<span class="text-tertiary font-semibold">Ahorro S/ 640</span>
+</span>
+<span class="material-symbols-outlined text-[18px] text-outline transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+</summary>
+<!-- KPI Metric Cards Grid -->
+<div class="grid grid-cols-1 gap-space-sm px-space-sm pb-space-sm sm:grid-cols-2 lg:grid-cols-4">
+<!-- Card 1: Critical Suggestions -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-error font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+            Quiebre Inminente &lt; 48 hrs
+          </span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">12 SKUs</span>
+</div>
+<div class="my-space-sm">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">
+            S/ 3,420<span class="text-headline-md font-semibold text-outline">.00</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Estimado para evitar quiebre de stock en góndola</p>
+</div>
+<div class="pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="text-error font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +3 productos hoy
+          </span>
+<span class="text-outline">6 alta prioridad</span>
+</div>
+</div>
+<!-- Card 2: Weekly Budget -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-semibold">Presupuesto Compra Semanal</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-bold">Semana 43</span>
+</div>
+<div class="my-space-sm">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">
+            S/ 15,800<span class="text-headline-md font-semibold text-outline">.00</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 mt-2 overflow-hidden flex">
+<div class="bg-primary h-full rounded-full" style="width: 68%;"></div>
+</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="text-primary font-bold">68% Ejecutado</span>
+<span class="font-semibold text-tertiary">Disp: S/ 5,050.00</span>
+</div>
+</div>
+<!-- Card 3: Pending / In-Transit Orders -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-semibold">OCs en Tránsito / Pendientes</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">3 Proveedores</span>
+</div>
+<div class="my-space-sm">
+<div class="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight">
+            S/ 7,890<span class="text-headline-md font-semibold text-outline">.00</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate">Alicorp (1), Arca (1), Gloria (1)</p>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> Llegada hoy: 14:30
+          </span>
+<span class="text-outline">Ver remisiones</span>
+</div>
+</div>
+<!-- Card 4: Volume Savings -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-tertiary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">savings</span> Ahorro x Escala Detectado
+          </span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">4 Bonificaciones</span>
+</div>
+<div class="my-space-sm">
+<div class="font-headline-xl text-headline-xl text-tertiary font-extrabold tracking-tight">
+            S/ 640<span class="text-headline-md font-semibold text-tertiary">.00</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">En bonificación 10+1 y bultos cerrados</p>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="text-tertiary font-bold">Margen extra +4.2%</span>
+<span class="text-outline">Vence en 24h</span>
+</div>
+</div>
+</div>
+</details>
+</section>
