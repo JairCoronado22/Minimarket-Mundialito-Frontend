@@ -11,6 +11,8 @@ const supportToggle = document.querySelector("#supportToggle");
 const supportToast = document.querySelector("#supportToast");
 let feedbackTimer;
 
+sessionStorage.removeItem("retail-pulse-role");
+
 function setRoleFeedback(role) {
   roleFeedback.classList.remove("hidden");
   roleFeedbackText.className =
@@ -61,7 +63,7 @@ form.addEventListener("submit", (event) => {
   const isAdmin =
     username === "10849201" || username.toLocaleLowerCase("es").includes("admin");
   const role = isAdmin ? "admin" : "cajero";
-  const destination = isAdmin ? "dashboard" : "ventas-cajas";
+  const destination = isAdmin ? "index.html#dashboard" : "pos.html";
   const rememberTerminal = document.querySelector("#rememberTerminal").checked;
 
   window.clearTimeout(feedbackTimer);
@@ -76,7 +78,9 @@ form.addEventListener("submit", (event) => {
     localStorage.removeItem("retail-pulse-terminal");
   }
 
+  sessionStorage.setItem("retail-pulse-role", role);
+
   feedbackTimer = window.setTimeout(() => {
-    window.location.assign(`index.html#${destination}`);
+    window.location.assign(destination);
   }, 700);
 });

@@ -33,6 +33,11 @@ async function mountComponent({ target, source }) {
 async function initializeApplication() {
   const errorMessage = document.querySelector("#app-error");
 
+  if (sessionStorage.getItem("retail-pulse-role") === "cajero") {
+    window.location.replace("pos.html");
+    return;
+  }
+
   try {
     await Promise.all(components.map(mountComponent));
     initPurchasingModule();

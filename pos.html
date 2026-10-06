@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Terminal de punto de venta para Minimarket El Mundialito."
+    />
+    <title>Punto de Venta | El Mundialito</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/tailwind.config.js"></script>
+    <script type="module" src="assets/js/pos.js"></script>
+  </head>
+  <body class="min-h-screen bg-surface font-body-md text-on-surface antialiased">
+    <header
+      class="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-space-md bg-surface-container-lowest px-margin shadow-sm"
+    >
+      <a href="pos.html" class="flex items-center gap-space-sm">
+        <span
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary"
+        >
+          <span class="material-symbols-outlined">point_of_sale</span>
+        </span>
+        <span>
+          <span class="block font-headline-sm text-headline-sm"
+            >El Mundialito · POS</span
+          >
+          <span class="block font-body-sm text-body-sm text-on-surface-variant"
+            >Terminal de caja 01</span
+          >
+        </span>
+      </a>
+      <div class="flex items-center gap-space-md">
+        <span
+          class="hidden items-center gap-space-xs font-label-md text-label-md text-tertiary sm:flex"
+        >
+          <span class="h-2 w-2 rounded-full bg-tertiary-fixed-dim"></span>
+          Caja en línea
+        </span>
+        <span class="font-label-md text-label-md text-on-surface-variant"
+          >Rosa Quispe · Cajera</span
+        >
+        <button
+          class="flex items-center gap-space-xs rounded-lg px-space-sm py-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-error"
+          id="logoutButton"
+          type="button"
+        >
+          <span class="material-symbols-outlined text-[20px]">logout</span>
+          <span class="hidden sm:inline">Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto grid max-w-[1600px] gap-space-lg p-margin lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <section class="flex min-w-0 flex-col gap-space-md">
+        <div class="flex flex-col justify-between gap-space-md sm:flex-row sm:items-end">
+          <div>
+            <p class="font-label-md text-label-md font-semibold text-primary">
+              Punto de venta
+            </p>
+            <h1 class="font-headline-xl text-headline-xl text-on-surface">
+              Nueva venta
+            </h1>
+          </div>
+          <label class="relative block w-full sm:max-w-sm">
+            <span
+              class="pointer-events-none absolute left-3 top-2.5 material-symbols-outlined text-[20px] text-outline"
+              >search</span
+            >
+            <input
+              class="h-11 w-full rounded-lg bg-surface-container-lowest pl-10 pr-3 shadow-sm outline-none focus:ring-2 focus:ring-primary"
+              id="productSearch"
+              placeholder="Buscar producto..."
+              type="search"
+            />
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-space-xs" aria-label="Categorías de productos">
+          <button
+            class="rounded-full bg-primary px-space-md py-2 font-label-md text-label-md text-on-primary"
+            data-category="Todos"
+            type="button"
+          >
+            Todos
+          </button>
+          <button
+            class="rounded-full bg-surface-container-lowest px-space-md py-2 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container"
+            data-category="Abarrotes"
+            type="button"
+          >
+            Abarrotes
+          </button>
+          <button
+            class="rounded-full bg-surface-container-lowest px-space-md py-2 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container"
+            data-category="Bebidas"
+            type="button"
+          >
+            Bebidas
+          </button>
+          <button
+            class="rounded-full bg-surface-container-lowest px-space-md py-2 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container"
+            data-category="Lácteos"
+            type="button"
+          >
+            Lácteos
+          </button>
+          <button
+            class="rounded-full bg-surface-container-lowest px-space-md py-2 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container"
+            data-category="Limpieza"
+            type="button"
+          >
+            Limpieza
+          </button>
+        </div>
+
+        <div
+          class="grid gap-space-md sm:grid-cols-2 xl:grid-cols-3"
+          id="productGrid"
+          aria-live="polite"
+        ></div>
+      </section>
+
+      <aside
+        class="flex h-fit flex-col rounded-xl bg-surface-container-lowest p-space-md shadow-sm lg:sticky lg:top-20"
+        aria-labelledby="cartTitle"
+      >
+        <div class="flex items-center justify-between border-b border-outline-variant pb-space-md">
+          <div>
+            <h2 id="cartTitle" class="font-headline-md text-headline-md">
+              Venta actual
+            </h2>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">
+              Caja 01 · Mostrador
+            </p>
+          </div>
+          <button
+            class="rounded-lg px-space-sm py-2 font-label-sm text-label-sm text-error hover:bg-error-container"
+            id="clearCartButton"
+            type="button"
+          >
+            Vaciar
+          </button>
+        </div>
+
+        <ul class="my-space-md flex max-h-[50vh] flex-col gap-space-sm overflow-y-auto" id="cartItems"></ul>
+
+        <p
+          class="hidden rounded-lg bg-surface-container-low p-space-md text-center text-on-surface-variant"
+          id="emptyCart"
+        >
+          Agrega productos para iniciar la venta.
+        </p>
+
+        <div class="mt-auto border-t border-outline-variant pt-space-md">
+          <div class="flex items-center justify-between text-on-surface-variant">
+            <span>Subtotal</span>
+            <span id="cartSubtotal">S/ 0.00</span>
+          </div>
+          <div class="mt-space-xs flex items-center justify-between">
+            <span class="font-label-lg text-label-lg font-bold">Total</span>
+            <span
+              class="font-headline-lg text-headline-lg font-extrabold text-primary"
+              id="cartTotal"
+              >S/ 0.00</span
+            >
+          </div>
+          <button
+            class="mt-space-md flex h-12 w-full items-center justify-center gap-space-xs rounded-lg bg-tertiary font-label-lg text-label-lg font-bold text-on-tertiary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            id="chargeButton"
+            disabled
+            type="button"
+          >
+            <span class="material-symbols-outlined">payments</span>
+            Cobrar
+          </button>
+          <p class="mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant" id="saleStatus" aria-live="polite">
+            Demo de punto de venta · Sin conexión a inventario real
+          </p>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>
