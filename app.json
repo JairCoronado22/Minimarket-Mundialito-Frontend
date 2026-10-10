@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Retail Pulse",
+    "slug": "retail-pulse-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1C30"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
