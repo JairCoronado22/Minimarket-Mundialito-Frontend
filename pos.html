@@ -49,9 +49,22 @@
           <span class="h-2 w-2 rounded-full bg-tertiary-fixed-dim"></span>
           Caja en línea
         </span>
-        <span class="font-label-md text-label-md text-on-surface-variant"
+        <span class="hidden font-label-md text-label-md text-on-surface-variant sm:inline"
           >Rosa Quispe · Cajera</span
         >
+        <button
+          aria-label="Notificaciones de inventario"
+          aria-expanded="false"
+          class="relative flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container-lowest text-on-surface-variant shadow-sm"
+          data-inventory-alert-toggle
+          type="button"
+        >
+          <span class="material-symbols-outlined inventory-notification-icon text-[20px]">notifications</span>
+          <span
+            aria-hidden="true"
+            class="inventory-notification-indicator absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"
+          ></span>
+        </button>
         <button
           class="flex items-center gap-space-xs rounded-lg px-space-sm py-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-error"
           id="logoutButton"
@@ -87,6 +100,49 @@
             />
           </label>
         </div>
+
+        <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-space-md shadow-sm" aria-labelledby="scanTitle">
+          <div class="flex flex-wrap items-center justify-between gap-space-sm">
+            <div>
+              <h2 id="scanTitle" class="font-label-lg text-label-lg font-semibold text-on-surface">
+                Escaneo de productos
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">
+                Usa un lector USB/Bluetooth (actúa como teclado) o escribe el código de barras registrado.
+              </p>
+            </div>
+            <span class="material-symbols-outlined text-primary" aria-hidden="true">barcode_scanner</span>
+          </div>
+          <form id="barcodeForm" class="mt-space-sm flex flex-col gap-space-xs sm:flex-row">
+            <label class="sr-only" for="barcodeInput">Código de barras del producto</label>
+            <input
+              autocomplete="off"
+              class="h-11 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-space-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
+              id="barcodeInput"
+              inputmode="numeric"
+              placeholder="Escanea o escribe el código de barras"
+              type="text"
+            />
+            <button
+              class="flex min-h-11 items-center justify-center gap-space-xs rounded-lg bg-primary px-space-md font-label-md text-label-md font-semibold text-on-primary hover:opacity-90"
+              type="submit"
+            >Buscar código</button>
+          </form>
+          <div class="mt-space-sm flex flex-col gap-space-xs sm:flex-row">
+            <label class="sr-only" for="scanProductSelect">Producto para simular el escaneo</label>
+            <select
+              class="h-11 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-space-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
+              id="scanProductSelect"
+            ></select>
+            <button
+              class="flex min-h-11 items-center justify-center gap-space-xs rounded-lg bg-primary px-space-md font-label-md text-label-md font-semibold text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              id="simulateScanButton"
+              type="button"
+            >
+              Simular lectura
+            </button>
+          </div>
+        </section>
 
         <div class="flex flex-wrap gap-space-xs" aria-label="Categorías de productos">
           <button
@@ -177,6 +233,25 @@
               >S/ 0.00</span
             >
           </div>
+          <fieldset class="mt-space-md">
+            <legend class="mb-space-xs font-label-md text-label-md font-semibold text-on-surface">
+              Medio de pago
+            </legend>
+            <div class="grid grid-cols-2 gap-space-xs" id="paymentMethods">
+              <button aria-pressed="true" class="flex items-center justify-center gap-space-xs rounded-lg bg-primary px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-primary" data-payment-method="Efectivo" type="button">
+                <span class="material-symbols-outlined text-[18px]">payments</span>Efectivo
+              </button>
+              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Tarjeta" disabled title="Aún no está integrado" type="button">
+                <span class="material-symbols-outlined text-[18px]">credit_card</span>Tarjeta
+              </button>
+              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Yape" disabled title="Aún no está integrado" type="button">
+                <span class="material-symbols-outlined text-[18px]">qr_code_2</span>Yape
+              </button>
+              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Plin" disabled title="Aún no está integrado" type="button">
+                <span class="material-symbols-outlined text-[18px]">qr_code_2</span>Plin
+              </button>
+            </div>
+          </fieldset>
           <button
             class="mt-space-md flex h-12 w-full items-center justify-center gap-space-xs rounded-lg bg-tertiary font-label-lg text-label-lg font-bold text-on-tertiary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             id="chargeButton"
@@ -187,7 +262,7 @@
             Cobrar
           </button>
           <p class="mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant" id="saleStatus" aria-live="polite">
-            Demo de punto de venta · Sin conexión a inventario real
+            Las ventas en efectivo se guardan en la base de datos; pagos digitales aún no disponibles.
           </p>
         </div>
       </aside>

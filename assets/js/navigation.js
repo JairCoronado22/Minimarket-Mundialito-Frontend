@@ -1,3 +1,12 @@
+import { renderSalesModule } from "./sales.js";
+import {
+  calculateInventoryAlerts,
+  getInventory,
+  getStockReceipts,
+  renderInventoryModule,
+  renderPredictiveAlertsModule,
+} from "./inventory.js";
+
 const modules = {
   "ventas-cajas": {
     title: "Ventas & Cajas",
@@ -95,9 +104,36 @@ export function initDashboardNavigation() {
   }
 
   const links = Array.from(sidebarNav.querySelectorAll("a[data-path]"));
+  const alertCountBadge = sidebarNav
+    .querySelector('a[data-path="alertas-predictivas"]')
+    ?.lastElementChild;
   links.forEach((link) => {
     link.href = `#${link.dataset.path}`;
   });
+
+  function updateAlertCount() {
+    if (!alertCountBadge) {
+      return;
+    }
+
+    try {
+      const count = calculateInventoryAlerts(
+        getInventory(),
+        getStockReceipts(),
+      ).length;
+      alertCountBadge.textContent = String(count);
+      alertCountBadge.hidden = count === 0;
+      alertCountBadge.setAttribute(
+        "aria-label",
+        `${count} alertas de inventario activas`,
+      );
+    } catch (error) {
+      console.error("No se pudo actualizar el contador de alertas:", error);
+      alertCountBadge.textContent = "!";
+      alertCountBadge.hidden = false;
+      alertCountBadge.setAttribute("aria-label", "No se pudieron cargar las alertas");
+    }
+  }
 
   function renderCurrentRoute() {
     const requestedRoute = window.location.hash.slice(1);
@@ -116,8 +152,19 @@ export function initDashboardNavigation() {
     moduleView.classList.toggle("hidden", isPurchasingDashboard);
 
     if (module) {
-      renderModule(moduleView, module);
+      if (route === "ventas-cajas") {
+        renderSalesModule(moduleView);
+      } else if (route === "inventario-almacen") {
+        renderInventoryModule(moduleView);
+      } else if (route === "alertas-predictivas") {
+        renderPredictiveAlertsModule(moduleView);
+      } else {
+        renderModule(moduleView, module);
+      }
     }
+
+    moduleView.dataset.route = route;
+    updateAlertCount();
 
     links.forEach((link) => {
       const isActive = link.dataset.path === route;
@@ -131,5 +178,44 @@ export function initDashboardNavigation() {
   }
 
   window.addEventListener("hashchange", renderCurrentRoute);
+  const refreshSalesModule = () => {
+    if (moduleView.dataset.route === "ventas-cajas") {
+      renderSalesModule(moduleView);
+    }
+  };
+  const refreshInventoryRoute = () => {
+    if (moduleView.dataset.route === "inventario-almacen") {
+      renderInventoryModule(moduleView);
+    }
+    if (moduleView.dataset.route === "alertas-predictivas") {
+      renderPredictiveAlertsModule(moduleView);
+    }
+  };
+  window.addEventListener("retail-pulse-sales-updated", refreshSalesModule);
+  window.addEventListener("retail-pulse-sales-updated", refreshInventoryRoute);
+  window.addEventListener("storage", (event) => {
+    if (event.key === "retail-pulse-sales") {
+      refreshSalesModule();
+    }
+    if (
+      event.key === "retail-pulse-inventory" ||
+      event.key === "retail-pulse-stock-receipts"
+    ) {
+      refreshInventoryRoute();
+    }
+  });
+  window.addEventListener("retail-pulse-inventory-updated", refreshInventoryRoute);
+  window.addEventListener("retail-pulse-stock-receipts-updated", refreshInventoryRoute);
+  window.addEventListener("retail-pulse-inventory-updated", updateAlertCount);
+  window.addEventListener("retail-pulse-stock-receipts-updated", updateAlertCount);
+  window.addEventListener("retail-pulse-sales-updated", updateAlertCount);
+  window.addEventListener("storage", (event) => {
+    if (
+      event.key === "retail-pulse-inventory" ||
+      event.key === "retail-pulse-stock-receipts"
+    ) {
+      updateAlertCount();
+    }
+  });
   renderCurrentRoute();
 }

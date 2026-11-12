@@ -1,0 +1,29 @@
+ALTER TABLE ventas
+    ADD COLUMN IF NOT EXISTS fecha TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS cajero VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS terminal VARCHAR(80),
+    ADD COLUMN IF NOT EXISTS medio_pago VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS estado VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS total NUMERIC(10, 2);
+
+UPDATE ventas
+SET fecha = COALESCE(fecha, CURRENT_TIMESTAMP),
+    cajero = COALESCE(cajero, 'No especificado'),
+    terminal = COALESCE(terminal, 'Caja 01'),
+    medio_pago = COALESCE(medio_pago, 'EFECTIVO'),
+    estado = COALESCE(estado, 'PAGADA'),
+    total = COALESCE(total, 0);
+
+ALTER TABLE ventas
+    ALTER COLUMN fecha SET DEFAULT CURRENT_TIMESTAMP,
+    ALTER COLUMN fecha SET NOT NULL,
+    ALTER COLUMN cajero SET DEFAULT 'No especificado',
+    ALTER COLUMN cajero SET NOT NULL,
+    ALTER COLUMN terminal SET DEFAULT 'Caja 01',
+    ALTER COLUMN terminal SET NOT NULL,
+    ALTER COLUMN medio_pago SET DEFAULT 'EFECTIVO',
+    ALTER COLUMN medio_pago SET NOT NULL,
+    ALTER COLUMN estado SET DEFAULT 'PAGADA',
+    ALTER COLUMN estado SET NOT NULL,
+    ALTER COLUMN total SET DEFAULT 0,
+    ALTER COLUMN total SET NOT NULL;

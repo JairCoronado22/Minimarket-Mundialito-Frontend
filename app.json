@@ -5,7 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -16,6 +18,20 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "extra": {
+      "apiBaseUrl": "http://192.168.1.42:8080/api"
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite usar la cámara para escanear productos en caja.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
   }
 }

@@ -1,5 +1,6 @@
 import { initPurchasingModule } from "./purchasing.js";
 import { initDashboardNavigation } from "./navigation.js";
+import { initInventoryNotifications } from "./notifications.js";
 
 const components = [
   { target: "#sidebar-mount", source: "../../components/sidebar.html" },
@@ -42,6 +43,7 @@ async function initializeApplication() {
     await Promise.all(components.map(mountComponent));
     initPurchasingModule();
     initDashboardNavigation();
+    initInventoryNotifications();
   } catch (error) {
     console.error("No se pudo inicializar la aplicación:", error);
     if (errorMessage) {
