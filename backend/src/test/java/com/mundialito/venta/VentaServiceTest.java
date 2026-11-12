@@ -13,6 +13,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -76,6 +78,34 @@ class VentaServiceTest {
     @Test
     void noMarcaComoPagadaUnaVentaConMedioDePagoNoConfirmado() {
         CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", "CULQI",
+                List.of(new CrearVentaRequest.ItemVentaRequest(1L, 1)));
+
+        assertThrows(ResponseStatusException.class, () -> ventaService.registrar(request));
+
+        verify(productoRepository, never()).findByIdForUpdate(1L);
+        verify(ventaRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "TARJETA", "YAPE" })
+    void registraVentasConMediosDigitalesSinProcesarUnCobroReal(String medioPago) {
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(producto));
+        when(ventaRepository.save(org.mockito.ArgumentMatchers.any(Venta.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", medioPago,
+                List.of(new CrearVentaRequest.ItemVentaRequest(1L, 1)));
+
+        Venta venta = ventaService.registrar(request);
+
+        assertEquals(medioPago, venta.getMedioPago());
+        assertEquals("PAGADA", venta.getEstado());
+        assertEquals(3, producto.getStockGondola());
+        verify(ventaRepository).save(venta);
+    }
+
+    @Test
+    void rechazaPlinMientrasNoEsteHabilitado() {
+        CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", "PLIN",
                 List.of(new CrearVentaRequest.ItemVentaRequest(1L, 1)));
 
         assertThrows(ResponseStatusException.class, () -> ventaService.registrar(request));

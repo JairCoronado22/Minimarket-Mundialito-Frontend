@@ -31,7 +31,7 @@ Panel de gestión de compras y reposición inteligente, organizado en componente
 
 Cuando hay alertas activas, una campana animada y un aviso visible aparecen en las pantallas operativas web y Expo. El aviso prioriza la situación más urgente; al pulsar la campana se puede consultar la lista completa de productos por vencer o con stock bajo. La animación respeta la preferencia de movimiento reducido en navegadores.
 
-Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y el cobro en efectivo se registra en el backend. “Ventas & Cajas” muestra el historial de la API. La app Expo, el módulo administrativo de inventario y sus alertas todavía trabajan con datos locales; no representan el stock sincronizado de PostgreSQL. Expo tiene configurada la URL LAN del backend en `expo.extra.apiBaseUrl`, pero la app móvil todavía no consume esa API.
+Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y las ventas se registran en el backend con el medio elegido. Tarjeta/Yape son registros manuales de demostración; el POS no verifica ni procesa esos pagos. “Ventas & Cajas” muestra el historial de la API. La app Expo, el módulo administrativo de inventario y sus alertas todavía trabajan con datos locales; no representan el stock sincronizado de PostgreSQL. Expo tiene configurada la URL LAN del backend en `expo.extra.apiBaseUrl`, pero la app móvil todavía no consume esa API.
 
 ## Ejecución local
 
@@ -70,10 +70,10 @@ En pgAdmin, selecciona `mundialito_db` y abre Query Tool para verificar las tabl
 
 - `GET/POST /api/productos`, `GET/PUT/DELETE /api/productos/{id}`. Los productos incluyen `codigoBarras` opcional y categoría.
 - `GET /api/productos/codigo/{codigoBarras}` para resolver una lectura de escáner a un producto.
-- `GET/POST /api/ventas` para consultar ventas y registrar ventas en efectivo; el servidor calcula precios y descuenta stock de góndola dentro de una transacción.
+- `GET/POST /api/ventas` para consultar ventas y registrar ventas con `EFECTIVO`, `TARJETA` o `YAPE`; el servidor calcula precios y descuenta stock de góndola dentro de una transacción.
 
-Para registrar una venta, envía `cajero`, `terminal`, `medioPago: "EFECTIVO"` e `items: [{"productoId": 1, "cantidad": 2}]`. Los medios de pago no confirmados se rechazan; no registres una venta como pagada antes de que el proveedor confirme el cobro.
+Para registrar una venta, envía `cajero`, `terminal`, `medioPago` (`"EFECTIVO"`, `"TARJETA"` o `"YAPE"`) e `items: [{"productoId": 1, "cantidad": 2}]`. Tarjeta y Yape solo guardan el medio declarado por el cajero: no se conectan con el proveedor, no validan ni procesan el cobro. Confirma el pago externamente antes de registrarlo. `PLIN` y otros medios todavía se rechazan.
 
-La integración Culqi todavía no procesa pagos. El POS web ya obtiene productos, busca códigos escaneados, registra ventas en efectivo y el panel Ventas & Cajas consulta el historial del servidor. El escáner USB/Bluetooth debe escribir el código en el campo del POS y enviar Enter. Expo todavía no está conectado al backend. El backend deja preparadas las variables `CULQI_PUBLIC_KEY` y `CULQI_SECRET_KEY`; no guardes ni envíes la llave secreta al navegador o al repositorio. Antes de activar pagos digitales hay que implementar y probar el flujo Checkout y confirmar el resultado con Culqi.
+La integración Culqi todavía no procesa pagos y las variables `CULQI_PUBLIC_KEY` y `CULQI_SECRET_KEY` no se usan. El POS web obtiene productos, busca códigos escaneados, registra ventas y el panel Ventas & Cajas consulta el historial del servidor. El registro de Tarjeta/Yape es manual y de demostración; no habilita cobros reales. No guardes ni envíes una llave secreta al navegador o al repositorio. Antes de activar pagos digitales hay que implementar y probar un flujo seguro de Checkout y confirmar el resultado con Culqi.
 
 La API actual no tiene autenticación/autorización para producción: mantenla local mientras se integra un mecanismo de acceso seguro.

@@ -247,6 +247,6 @@ export async function renderSalesModule(container) {
           </table>
         </div>
       </section>
-      <p class="font-body-sm text-body-sm text-on-surface-variant">Este historial refleja las ventas registradas por el backend. Solo efectivo está habilitado actualmente.</p>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">Este historial refleja las ventas registradas por el backend. Tarjeta y Yape son métodos declarados manualmente; no se verifican ni procesan pagos digitales.</p>
     </section>`;
 }

@@ -3,6 +3,15 @@ const configuredBaseUrl =
 
 export const API_BASE_URL = configuredBaseUrl.replace(/\/+$/, "");
 
+const PAYMENT_CODES = new Map([
+  ["Efectivo", "EFECTIVO"],
+  ["Tarjeta", "TARJETA"],
+  ["Yape", "YAPE"],
+]);
+const PAYMENT_METHODS = new Map(
+  Array.from(PAYMENT_CODES, ([method, code]) => [code, method]),
+);
+
 export class ApiError extends Error {
   constructor(message, status) {
     super(message);
@@ -76,13 +85,14 @@ export async function findProductByBarcode(barcode) {
 }
 
 export async function createSale({ cashier, terminal, paymentMethod, items }) {
-  if (paymentMethod !== "Efectivo") {
-    throw new Error("Este medio de pago aún no está habilitado en el backend.");
+  const medioPago = PAYMENT_CODES.get(paymentMethod);
+  if (!medioPago) {
+    throw new Error("Este medio de pago no está habilitado en el backend.");
   }
   const payload = {
     cajero: cashier,
     terminal,
-    medioPago: "EFECTIVO",
+    medioPago,
     items: items.map(({ product, quantity }) => {
       const productoId = Number(product.id);
       if (!Number.isSafeInteger(productoId) || productoId <= 0) {
@@ -107,7 +117,7 @@ export async function listSales() {
     soldAt: sale.fecha,
     cashier: sale.cajero,
     terminal: sale.terminal,
-    paymentMethod: sale.medioPago === "EFECTIVO" ? "Efectivo" : sale.medioPago,
+    paymentMethod: PAYMENT_METHODS.get(sale.medioPago) || sale.medioPago,
     total: Number(sale.total),
     items: sale.items.map((item) => ({
       id: String(item.productoId),

@@ -312,21 +312,25 @@ if (sessionStorage.getItem("retail-pulse-role") !== "cajero") {
       return;
     }
 
+    const paymentMethod = selectedPaymentMethod;
     isCharging = true;
     renderCart();
     try {
       const sale = await createSale({
         cashier: "Rosa Quispe",
         terminal: localStorage.getItem("retail-pulse-terminal") || "Caja 01",
-        paymentMethod: selectedPaymentMethod,
+        paymentMethod,
         items: Array.from(cart.values()),
       });
       cart.clear();
       const productsRefreshed = await refreshProducts();
       renderCart();
+      const paymentNotice = ["Tarjeta", "Yape"].includes(paymentMethod)
+        ? " Esta demo no procesó ni verificó el pago."
+        : "";
       saleStatus.textContent = productsRefreshed
-        ? `Venta ${sale.id} registrada en PostgreSQL por ${formatCurrency(Number(sale.total))}.`
-        : `Venta ${sale.id} registrada, pero no se pudo actualizar el catálogo. Vuelve a cargar los productos.`;
+        ? `Venta ${sale.id} registrada en PostgreSQL por ${formatCurrency(Number(sale.total))}.${paymentNotice}`
+        : `Venta ${sale.id} registrada, pero no se pudo actualizar el catálogo. Vuelve a cargar los productos.${paymentNotice}`;
       window.dispatchEvent(new Event("retail-pulse-sales-updated"));
     } catch (error) {
       console.error("No se pudo registrar la venta:", error);

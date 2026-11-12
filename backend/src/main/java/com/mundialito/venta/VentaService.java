@@ -3,7 +3,9 @@ package com.mundialito.venta;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,9 @@ import com.mundialito.producto.ProductoRepository;
 
 @Service
 public class VentaService {
+    private static final Set<String> MEDIOS_PAGO_REGISTRABLES = Set.of(
+            "EFECTIVO", "TARJETA", "YAPE");
+
     private final ProductoRepository productoRepository;
     private final VentaRepository ventaRepository;
 
@@ -31,9 +36,11 @@ public class VentaService {
 
     @Transactional
     public Venta registrar(CrearVentaRequest request) {
-        if (!"EFECTIVO".equals(request.medioPago())) {
+        String medioPago = request.medioPago().trim().toUpperCase(Locale.ROOT);
+        if (!MEDIOS_PAGO_REGISTRABLES.contains(medioPago)) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Por ahora solo se registran ventas en efectivo; los pagos digitales aún no están habilitados.");
+                    "Medio de pago no disponible. Se permiten EFECTIVO, TARJETA y YAPE; "
+                            + "Tarjeta y Yape solo se registran manualmente, no se procesan en línea.");
         }
 
         Map<Long, Integer> cantidades = new TreeMap<>();
@@ -71,7 +78,7 @@ public class VentaService {
 
         Venta venta = new Venta(OffsetDateTime.now(),
                 request.cajero().trim(), request.terminal().trim(),
-                "EFECTIVO", "PAGADA", total);
+                medioPago, "PAGADA", total);
         for (Map.Entry<Long, Integer> entry : cantidades.entrySet()) {
             Producto producto = productos.get(entry.getKey());
             BigDecimal subtotal = subtotales.get(entry.getKey());

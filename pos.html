@@ -241,16 +241,19 @@
               <button aria-pressed="true" class="flex items-center justify-center gap-space-xs rounded-lg bg-primary px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-primary" data-payment-method="Efectivo" type="button">
                 <span class="material-symbols-outlined text-[18px]">payments</span>Efectivo
               </button>
-              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Tarjeta" disabled title="Aún no está integrado" type="button">
+              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface" data-payment-method="Tarjeta" type="button">
                 <span class="material-symbols-outlined text-[18px]">credit_card</span>Tarjeta
               </button>
-              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Yape" disabled title="Aún no está integrado" type="button">
+              <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface" data-payment-method="Yape" type="button">
                 <span class="material-symbols-outlined text-[18px]">qr_code_2</span>Yape
               </button>
               <button aria-pressed="false" class="flex items-center justify-center gap-space-xs rounded-lg bg-surface-container-low px-space-sm py-2 font-label-sm text-label-sm font-semibold text-on-surface opacity-50" data-payment-method="Plin" disabled title="Aún no está integrado" type="button">
                 <span class="material-symbols-outlined text-[18px]">qr_code_2</span>Plin
               </button>
             </div>
+            <p class="mt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+              Tarjeta y Yape se registran manualmente. Esta demo no procesa ni verifica el pago; confírmalo por fuera antes de cobrar.
+            </p>
           </fieldset>
           <button
             class="mt-space-md flex h-12 w-full items-center justify-center gap-space-xs rounded-lg bg-tertiary font-label-lg text-label-lg font-bold text-on-tertiary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -262,7 +265,7 @@
             Cobrar
           </button>
           <p class="mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant" id="saleStatus" aria-live="polite">
-            Las ventas en efectivo se guardan en la base de datos; pagos digitales aún no disponibles.
+            Las ventas se guardan en la base de datos. Tarjeta y Yape son registros manuales, no cobros procesados.
           </p>
         </div>
       </aside>
