@@ -1,5 +1,6 @@
 const configuredBaseUrl =
-  window.MUNDIALITO_API_URL || "http://localhost:8080/api";
+  window.MUNDIALITO_API_URL ||
+  "https://minimarket-mundialito-frontend.onrender.com/api";
 
 export const API_BASE_URL = configuredBaseUrl.replace(/\/+$/, "");
 

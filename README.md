@@ -31,7 +31,7 @@ Panel de gestión de compras y reposición inteligente, organizado en componente
 
 Cuando hay alertas activas, una campana animada y un aviso visible aparecen en las pantallas operativas web y Expo. El aviso prioriza la situación más urgente; al pulsar la campana se puede consultar la lista completa de productos por vencer o con stock bajo. La animación respeta la preferencia de movimiento reducido en navegadores.
 
-Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y las ventas se registran en el backend con el medio elegido. Tarjeta/Yape son registros manuales de demostración; el POS no verifica ni procesa esos pagos. “Ventas & Cajas” muestra el historial de la API. La app Expo, el módulo administrativo de inventario y sus alertas todavía trabajan con datos locales; no representan el stock sincronizado de PostgreSQL. Expo tiene configurada la URL LAN del backend en `expo.extra.apiBaseUrl`, pero la app móvil todavía no consume esa API.
+Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y las ventas se registran en el backend con el medio elegido. Tarjeta/Yape son registros manuales de demostración; el POS no verifica ni procesa esos pagos. “Ventas & Cajas” muestra el historial de la API. La app Expo, el módulo administrativo de inventario y sus alertas todavía trabajan con datos locales; no representan el stock sincronizado de PostgreSQL. Expo tiene configurada la URL pública del backend en `expo.extra.apiBaseUrl`, pero la app móvil todavía no consume esa API.
 
 ## Ejecución local
 
