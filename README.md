@@ -66,6 +66,32 @@ mvn spring-boot:run
 
 La conexión usa `DB_URL`, `DB_USERNAME` y `DB_PASSWORD`. Si la interfaz usa otro origen, agrégalo a `APP_CORS_ALLOWED_ORIGINS` como lista separada por comas. Flyway crea y versiona las tablas `productos`, `ventas` y `detalle_venta` al iniciar; Hibernate solo valida el esquema. Las migraciones conservan los productos y ventas existentes, agregan campos de categoría y código de barras, y compatibilizan los identificadores y campos requeridos.
 
+### Conectar a Supabase
+
+`application.properties` ya toma la conexión de las variables de entorno. Para usar la base Supabase de este proyecto en PowerShell, configura la URL JDBC con SSL y escribe la contraseña de forma oculta cuando se solicite:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://db.vieisxllgzyemhrxjghs.supabase.co:5432/postgres?sslmode=require"
+$env:DB_USERNAME="postgres"
+$securePassword = Read-Host "Contraseña de la base Supabase" -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+  $env:DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+}
+$env:JAVA_HOME="C:\Program Files\Java\jdk-25"
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+cd backend
+mvn spring-boot:run
+```
+
+Estas variables solo se configuran para la sesión actual de PowerShell; no guardes la contraseña en `application.properties`, el repositorio ni el historial de comandos. Al iniciar, Flyway ejecuta migraciones que modifican el esquema y agregan productos de demostración. Usa una base vacía o haz una copia de seguridad y revisa las migraciones antes de conectarte a una base con datos importantes.
+
+### Despliegue del backend en Render
+
+El backend incluye [backend/Dockerfile](./backend/Dockerfile), compatible con Java 25. En Render, crea un servicio Web usando Docker y establece `backend` como Root Directory. Configura `DB_URL` (URL JDBC de Supabase con `sslmode=require`), `DB_USERNAME` y `DB_PASSWORD` en Environment; guarda la contraseña como variable secreta de Render, no en el repositorio. La aplicación escucha en el puerto asignado por Render mediante `PORT`. Flyway aplica las migraciones durante el arranque, así que verifica que la base esté vacía o respaldada antes del primer despliegue.
+
 En pgAdmin, selecciona `mundialito_db` y abre Query Tool para verificar las tablas después del primer inicio del backend; el panel Messages debe mostrar que Flyway aplicó las migraciones disponibles. La API ofrece:
 
 - `GET/POST /api/productos`, `GET/PUT/DELETE /api/productos/{id}`. Los productos incluyen `codigoBarras` opcional y categoría.

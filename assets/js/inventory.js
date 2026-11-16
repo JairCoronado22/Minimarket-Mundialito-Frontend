@@ -354,85 +354,6 @@ export function renderInventoryModule(container) {
     return;
   }
 
-  export function renderPredictiveAlertsModule(container) {
-    let alerts;
-    try {
-      alerts = calculateInventoryAlerts(getInventory(), getStockReceipts());
-    } catch (error) {
-      console.error("No se pudieron calcular las alertas de inventario:", error);
-      container.innerHTML = `
-        <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
-          <header>
-            <p class="font-label-md text-label-md font-semibold text-primary">Retail Pulse</p>
-            <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Alertas Predictivas</h1>
-          </header>
-          <p class="rounded-xl bg-error-container p-space-lg text-on-error-container" role="alert">
-            No se pudieron calcular las alertas: ${escapeHtml(error.message)}
-          </p>
-        </section>`;
-      return;
-    }
-
-    const criticalCount = alerts.filter(
-      (alert) => alert.severity === "critical",
-    ).length;
-    const warningCount = alerts.length - criticalCount;
-    const alertCards = alerts.length
-      ? alerts
-          .map((alert) => {
-            const isCritical = alert.severity === "critical";
-            const details =
-              alert.type === "expiration"
-                ? `Lote ${escapeHtml(alert.lot)} · ${alert.quantity} unidades · vence ${escapeHtml(formatDate(alert.expiresAt))}`
-                : `${alert.quantity} unidades disponibles`;
-
-            return `
-              <article class="flex gap-space-md rounded-xl border ${isCritical ? "border-error bg-error-container text-on-error-container" : "border-outline-variant bg-surface-container-lowest text-on-surface"} p-space-lg shadow-sm">
-                <span class="material-symbols-outlined mt-0.5 text-[24px]">${alert.type === "expiration" ? "event_busy" : "inventory_2"}</span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex flex-wrap items-center justify-between gap-space-xs">
-                    <h2 class="font-headline-sm text-headline-sm">${escapeHtml(alert.productName)}</h2>
-                    <span class="rounded-full ${isCritical ? "bg-error text-on-error" : "bg-secondary-container text-on-secondary-container"} px-space-sm py-1 font-label-sm text-label-sm font-bold">${isCritical ? "Urgente" : "Atención"}</span>
-                  </div>
-                  <p class="mt-1 font-label-md text-label-md font-semibold">${escapeHtml(alert.message)}</p>
-                  <p class="mt-1 font-body-sm text-body-sm">${details}</p>
-                </div>
-              </article>`;
-          })
-          .join("")
-      : `
-        <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-space-lg text-center shadow-sm">
-          <span class="material-symbols-outlined text-[36px] text-tertiary">task_alt</span>
-          <h2 class="mt-2 font-headline-sm text-headline-sm">Todo en orden</h2>
-          <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">No hay productos con stock bajo ni lotes próximos a vencer.</p>
-        </div>`;
-
-    container.innerHTML = `
-      <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
-        <header class="flex flex-col gap-2">
-          <p class="font-label-md text-label-md font-semibold text-primary">Seguimiento de inventario</p>
-          <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Alertas Predictivas</h1>
-          <p class="max-w-2xl font-body-md text-body-md text-on-surface-variant">Avisos calculados a partir del stock actual y los lotes recibidos. Se alerta por stock de 10 unidades o menos y por lotes que vencen dentro de 30 días o ya vencieron.</p>
-        </header>
-        <div class="grid gap-space-md sm:grid-cols-3">
-          <article class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
-            <p class="font-label-md text-label-md text-on-surface-variant">Alertas activas</p>
-            <p class="mt-2 font-headline-lg text-headline-lg font-bold text-on-surface">${alerts.length}</p>
-          </article>
-          <article class="rounded-xl bg-error-container p-space-lg text-on-error-container shadow-sm">
-            <p class="font-label-md text-label-md">Urgentes</p>
-            <p class="mt-2 font-headline-lg text-headline-lg font-bold">${criticalCount}</p>
-          </article>
-          <article class="rounded-xl bg-secondary-container p-space-lg text-on-secondary-container shadow-sm">
-            <p class="font-label-md text-label-md">Atención</p>
-            <p class="mt-2 font-headline-lg text-headline-lg font-bold">${warningCount}</p>
-          </article>
-        </div>
-        <div class="grid gap-space-md xl:grid-cols-2">${alertCards}</div>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Las alertas se actualizan al registrar ventas o recepciones de lotes. Los vencimientos se calculan por fecha calendario local.</p>
-      </section>`;
-  }
-
   const inventoryRows = inventory
     .map(
       (product) => `
@@ -581,4 +502,83 @@ export function renderInventoryModule(container) {
       });
     });
   });
+}
+
+export function renderPredictiveAlertsModule(container) {
+  let alerts;
+  try {
+    alerts = calculateInventoryAlerts(getInventory(), getStockReceipts());
+  } catch (error) {
+    console.error("No se pudieron calcular las alertas de inventario:", error);
+    container.innerHTML = `
+      <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
+        <header>
+          <p class="font-label-md text-label-md font-semibold text-primary">Retail Pulse</p>
+          <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Alertas Predictivas</h1>
+        </header>
+        <p class="rounded-xl bg-error-container p-space-lg text-on-error-container" role="alert">
+          No se pudieron calcular las alertas: ${escapeHtml(error.message)}
+        </p>
+      </section>`;
+    return;
+  }
+
+  const criticalCount = alerts.filter(
+    (alert) => alert.severity === "critical",
+  ).length;
+  const warningCount = alerts.length - criticalCount;
+  const alertCards = alerts.length
+    ? alerts
+        .map((alert) => {
+          const isCritical = alert.severity === "critical";
+          const details =
+            alert.type === "expiration"
+              ? `Lote ${escapeHtml(alert.lot)} · ${alert.quantity} unidades · vence ${escapeHtml(formatDate(alert.expiresAt))}`
+              : `${alert.quantity} unidades disponibles`;
+
+          return `
+            <article class="flex gap-space-md rounded-xl border ${isCritical ? "border-error bg-error-container text-on-error-container" : "border-outline-variant bg-surface-container-lowest text-on-surface"} p-space-lg shadow-sm">
+              <span class="material-symbols-outlined mt-0.5 text-[24px]">${alert.type === "expiration" ? "event_busy" : "inventory_2"}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center justify-between gap-space-xs">
+                  <h2 class="font-headline-sm text-headline-sm">${escapeHtml(alert.productName)}</h2>
+                  <span class="rounded-full ${isCritical ? "bg-error text-on-error" : "bg-secondary-container text-on-secondary-container"} px-space-sm py-1 font-label-sm text-label-sm font-bold">${isCritical ? "Urgente" : "Atención"}</span>
+                </div>
+                <p class="mt-1 font-label-md text-label-md font-semibold">${escapeHtml(alert.message)}</p>
+                <p class="mt-1 font-body-sm text-body-sm">${details}</p>
+              </div>
+            </article>`;
+        })
+        .join("")
+    : `
+      <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-space-lg text-center shadow-sm">
+        <span class="material-symbols-outlined text-[36px] text-tertiary">task_alt</span>
+        <h2 class="mt-2 font-headline-sm text-headline-sm">Todo en orden</h2>
+        <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">No hay productos con stock bajo ni lotes próximos a vencer.</p>
+      </div>`;
+
+  container.innerHTML = `
+    <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
+      <header class="flex flex-col gap-2">
+        <p class="font-label-md text-label-md font-semibold text-primary">Seguimiento de inventario</p>
+        <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Alertas Predictivas</h1>
+        <p class="max-w-2xl font-body-md text-body-md text-on-surface-variant">Avisos calculados a partir del stock actual y los lotes recibidos. Se alerta por stock de 10 unidades o menos y por lotes que vencen dentro de 30 días o ya vencieron.</p>
+      </header>
+      <div class="grid gap-space-md sm:grid-cols-3">
+        <article class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+          <p class="font-label-md text-label-md text-on-surface-variant">Alertas activas</p>
+          <p class="mt-2 font-headline-lg text-headline-lg font-bold text-on-surface">${alerts.length}</p>
+        </article>
+        <article class="rounded-xl bg-error-container p-space-lg text-on-error-container shadow-sm">
+          <p class="font-label-md text-label-md">Urgentes</p>
+          <p class="mt-2 font-headline-lg text-headline-lg font-bold">${criticalCount}</p>
+        </article>
+        <article class="rounded-xl bg-secondary-container p-space-lg text-on-secondary-container shadow-sm">
+          <p class="font-label-md text-label-md">Atención</p>
+          <p class="mt-2 font-headline-lg text-headline-lg font-bold">${warningCount}</p>
+        </article>
+      </div>
+      <div class="grid gap-space-md xl:grid-cols-2">${alertCards}</div>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">Las alertas se actualizan al registrar ventas o recepciones de lotes. Los vencimientos se calculan por fecha calendario local.</p>
+    </section>`;
 }
