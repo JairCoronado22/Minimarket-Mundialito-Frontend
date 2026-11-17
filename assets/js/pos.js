@@ -4,6 +4,7 @@ import {
   findProductByBarcode,
   listProducts,
 } from "./api.js";
+import { INVENTORY_STORAGE_KEY } from "./inventory.js";
 import { initInventoryNotifications } from "./notifications.js";
 
 if (sessionStorage.getItem("retail-pulse-role") !== "cajero") {
@@ -165,6 +166,12 @@ if (sessionStorage.getItem("retail-pulse-role") !== "cajero") {
     renderProducts();
     try {
       products = await listProducts();
+      try {
+        localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(products));
+      } catch (error) {
+        console.error("No se pudo actualizar la copia local del inventario:", error);
+      }
+      window.dispatchEvent(new Event("retail-pulse-inventory-updated"));
       isLoadingProducts = false;
       renderProducts();
       renderScanProducts();

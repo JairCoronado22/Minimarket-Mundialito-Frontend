@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,6 +57,22 @@ public class ProductoController {
         buscarPorId(id);
         producto.setId(id);
         return guardar(producto);
+    }
+
+    @PostMapping("/{id}/ingresos")
+    @Transactional
+    public Producto registrarIngreso(
+            @PathVariable Long id,
+            @Valid @RequestBody IngresoStockRequest request) {
+        Producto producto = productoRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
+        try {
+            producto.setStockGondola(Math.addExact(producto.getStockGondola(), request.cantidad()));
+        } catch (ArithmeticException exception) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "El stock supera el límite permitido.", exception);
+        }
+        return productoRepository.saveAndFlush(producto);
     }
 
     @DeleteMapping("/{id}")

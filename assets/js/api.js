@@ -78,6 +78,22 @@ export async function listProducts() {
   return products.map(mapProduct);
 }
 
+export async function addProductStock(productId, quantity) {
+  const numericId = Number(productId);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+    throw new Error("El producto tiene un identificador inválido.");
+  }
+  if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+    throw new Error("La cantidad recibida debe ser un entero mayor que cero.");
+  }
+
+  const updatedProduct = await request(`/productos/${numericId}/ingresos`, {
+    method: "POST",
+    body: JSON.stringify({ cantidad: quantity }),
+  });
+  return mapProduct(updatedProduct);
+}
+
 export async function findProductByBarcode(barcode) {
   const product = await request(
     `/productos/codigo/${encodeURIComponent(barcode)}`,

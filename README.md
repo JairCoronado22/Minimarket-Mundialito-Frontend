@@ -31,7 +31,7 @@ Panel de gestión de compras y reposición inteligente, organizado en componente
 
 Cuando hay alertas activas, una campana animada y un aviso visible aparecen en las pantallas operativas web y Expo. El aviso prioriza la situación más urgente; al pulsar la campana se puede consultar la lista completa de productos por vencer o con stock bajo. La animación respeta la preferencia de movimiento reducido en navegadores.
 
-Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y las ventas se registran en el backend con el medio elegido. Tarjeta/Yape son registros manuales de demostración; el POS no verifica ni procesa esos pagos. “Ventas & Cajas” muestra el historial de la API. La app Expo, el módulo administrativo de inventario y sus alertas todavía trabajan con datos locales; no representan el stock sincronizado de PostgreSQL. Expo tiene configurada la URL pública del backend en `expo.extra.apiBaseUrl`, pero la app móvil todavía no consume esa API.
+Estado actualizado del POS web: el catálogo se consulta a la API, el código de barras se busca en PostgreSQL y las ventas se registran en el backend con el medio elegido. Tarjeta/Yape son registros manuales de demostración; el POS no verifica ni procesa esos pagos. “Ventas & Cajas” muestra el historial de la API. “Inventario & Almacén” y las alertas de stock bajo consultan el backend, y las recepciones suman stock mediante `POST /api/productos/{id}/ingresos`. Los datos de proveedor, lote y vencimiento aún se guardan en `localStorage`, por lo que las alertas de vencimiento no se sincronizan entre dispositivos. La app Expo mantiene su inventario y alertas locales; tiene configurada la URL pública del backend en `expo.extra.apiBaseUrl`, pero todavía no consume esa API.
 
 ## Ejecución local
 
@@ -95,6 +95,7 @@ El backend incluye [backend/Dockerfile](./backend/Dockerfile), compatible con Ja
 En pgAdmin, selecciona `mundialito_db` y abre Query Tool para verificar las tablas después del primer inicio del backend; el panel Messages debe mostrar que Flyway aplicó las migraciones disponibles. La API ofrece:
 
 - `GET/POST /api/productos`, `GET/PUT/DELETE /api/productos/{id}`. Los productos incluyen `codigoBarras` opcional y categoría.
+- `POST /api/productos/{id}/ingresos` con `{"cantidad": 5}` para aumentar el stock de forma transaccional.
 - `GET /api/productos/codigo/{codigoBarras}` para resolver una lectura de escáner a un producto.
 - `GET/POST /api/ventas` para consultar ventas y registrar ventas con `EFECTIVO`, `TARJETA` o `YAPE`; el servidor calcula precios y descuenta stock de góndola dentro de una transacción.
 

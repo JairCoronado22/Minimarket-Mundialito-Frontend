@@ -1,7 +1,7 @@
 import { renderSalesModule } from "./sales.js";
+import { listProducts } from "./api.js";
 import {
   calculateInventoryAlerts,
-  getInventory,
   getStockReceipts,
   renderInventoryModule,
   renderPredictiveAlertsModule,
@@ -107,20 +107,25 @@ export function initDashboardNavigation() {
   const alertCountBadge = sidebarNav
     .querySelector('a[data-path="alertas-predictivas"]')
     ?.lastElementChild;
+  let alertCountRequest = 0;
   links.forEach((link) => {
     link.href = `#${link.dataset.path}`;
   });
 
-  function updateAlertCount() {
+  async function updateAlertCount() {
     if (!alertCountBadge) {
       return;
     }
 
+    const requestId = ++alertCountRequest;
     try {
       const count = calculateInventoryAlerts(
-        getInventory(),
+        await listProducts(),
         getStockReceipts(),
       ).length;
+      if (requestId !== alertCountRequest) {
+        return;
+      }
       alertCountBadge.textContent = String(count);
       alertCountBadge.hidden = count === 0;
       alertCountBadge.setAttribute(
@@ -128,6 +133,9 @@ export function initDashboardNavigation() {
         `${count} alertas de inventario activas`,
       );
     } catch (error) {
+      if (requestId !== alertCountRequest) {
+        return;
+      }
       console.error("No se pudo actualizar el contador de alertas:", error);
       alertCountBadge.textContent = "!";
       alertCountBadge.hidden = false;
@@ -150,6 +158,7 @@ export function initDashboardNavigation() {
     dashboardOverview.classList.toggle("hidden", !isPurchasingDashboard);
     restockSuggestions.classList.toggle("hidden", !isPurchasingDashboard);
     moduleView.classList.toggle("hidden", isPurchasingDashboard);
+    moduleView.dataset.route = route;
 
     if (module) {
       if (route === "ventas-cajas") {
@@ -163,7 +172,6 @@ export function initDashboardNavigation() {
       }
     }
 
-    moduleView.dataset.route = route;
     updateAlertCount();
 
     links.forEach((link) => {

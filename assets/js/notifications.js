@@ -1,6 +1,6 @@
+import { listProducts } from "./api.js";
 import {
   calculateInventoryAlerts,
-  getInventory,
   getStockReceipts,
 } from "./inventory.js";
 
@@ -51,6 +51,7 @@ export function initInventoryNotifications() {
   const summaryText = widget.querySelector(".inventory-notification-summary-text");
   const countElement = widget.querySelector(".inventory-notification-count");
   const alertList = widget.querySelector(".inventory-notification-list");
+  let updateSequence = 0;
 
   function toggleList() {
     const isExpanded = alertList.hidden;
@@ -66,9 +67,16 @@ export function initInventoryNotifications() {
     button.addEventListener("click", toggleList);
   });
 
-  function updateNotifications() {
+  async function updateNotifications() {
+    const sequence = ++updateSequence;
     try {
-      const alerts = calculateInventoryAlerts(getInventory(), getStockReceipts());
+      const alerts = calculateInventoryAlerts(
+        await listProducts(),
+        getStockReceipts(),
+      );
+      if (sequence !== updateSequence) {
+        return;
+      }
       const firstAlert = alerts[0];
       widget.hidden = alerts.length === 0;
       if (!firstAlert) {
@@ -146,6 +154,9 @@ export function initInventoryNotifications() {
         }
       });
     } catch (error) {
+      if (sequence !== updateSequence) {
+        return;
+      }
       console.error("No se pudieron actualizar las notificaciones:", error);
       widget.hidden = false;
       summaryText.textContent = "No se pudieron cargar las alertas de inventario.";

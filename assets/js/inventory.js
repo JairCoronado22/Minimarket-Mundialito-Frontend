@@ -1,14 +1,9 @@
+import { addProductStock, listProducts } from "./api.js";
+
 export const INVENTORY_STORAGE_KEY = "retail-pulse-inventory";
 const RECEIPTS_STORAGE_KEY = "retail-pulse-stock-receipts";
-
-const defaultInventory = [
-  { id: "aceite-primor", name: "Aceite Primor Premium 900ml", category: "Abarrotes", price: 10.9, icon: "grocery", stock: 18 },
-  { id: "arroz-costeno", name: "Arroz Costeño Extra 1kg", category: "Abarrotes", price: 5.8, icon: "lunch_dining", stock: 24 },
-  { id: "galletas-casino", name: "Galletas Casino Menta x6", category: "Abarrotes", price: 3.2, icon: "cookie", stock: 12 },
-  { id: "coca-cola", name: "Coca-Cola 500ml", category: "Bebidas", price: 3.5, icon: "local_drink", stock: 20 },
-  { id: "leche-gloria", name: "Leche Gloria Entera 400g", category: "Lácteos", price: 3.85, icon: "nutrition", stock: 24 },
-  { id: "detergente-ariel", name: "Detergente Ariel Doble Poder 500g", category: "Limpieza", price: 8.5, icon: "soap", stock: 10 },
-];
+let inventoryRenderSequence = 0;
+let alertsRenderSequence = 0;
 
 function isInventoryItem(item) {
   return (
@@ -69,8 +64,13 @@ function readStoredArray(key, validate, label) {
 }
 
 export function getInventory() {
-  return readStoredArray(INVENTORY_STORAGE_KEY, isInventoryItem, "inventario") ??
-    defaultInventory.map((item) => ({ ...item }));
+  return readStoredArray(INVENTORY_STORAGE_KEY, isInventoryItem, "inventario") ?? [];
+}
+
+async function loadInventoryFromApi() {
+  const inventory = await listProducts();
+  localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(inventory));
+  return inventory;
 }
 
 export function getStockReceipts() {
@@ -155,7 +155,7 @@ function saveInventory(inventory) {
   window.dispatchEvent(new Event("retail-pulse-inventory-updated"));
 }
 
-export function registerStockReceipt({
+export async function registerStockReceipt({
   productId,
   supplier,
   quantity,
@@ -203,8 +203,9 @@ export function registerStockReceipt({
     expiresAt,
     receivedAt: new Date().toISOString(),
   };
+  const updatedProduct = await addProductStock(productId, quantity);
   const updatedInventory = inventory.map((item) =>
-    item.id === productId ? { ...item, stock: item.stock + quantity } : item,
+    item.id === productId ? updatedProduct : item,
   );
   const previousInventory = localStorage.getItem(INVENTORY_STORAGE_KEY);
   const previousReceipts = localStorage.getItem(RECEIPTS_STORAGE_KEY);
@@ -331,15 +332,34 @@ function formatDate(date) {
   );
 }
 
-export function renderInventoryModule(container) {
+export async function renderInventoryModule(container) {
+  const requestId = ++inventoryRenderSequence;
+  container.innerHTML = `
+    <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
+      <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Inventario &amp; Almacén</h1>
+      <p class="font-body-md text-body-md text-on-surface-variant" role="status">Cargando inventario desde el servidor...</p>
+    </section>`;
+
   let inventory;
   let receipts;
   try {
-    inventory = getInventory();
+    inventory = await loadInventoryFromApi();
+    if (
+      requestId !== inventoryRenderSequence ||
+      container.dataset.route !== "inventario-almacen"
+    ) {
+      return;
+    }
     receipts = getStockReceipts().sort(
       (first, second) => Date.parse(second.receivedAt) - Date.parse(first.receivedAt),
     );
   } catch (error) {
+    if (
+      requestId !== inventoryRenderSequence ||
+      container.dataset.route !== "inventario-almacen"
+    ) {
+      return;
+    }
     console.error("No se pudo cargar el inventario:", error);
     container.innerHTML = `
       <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
@@ -436,7 +456,7 @@ export function renderInventoryModule(container) {
           </table>
         </div>
       </section>
-      <p class="font-body-sm text-body-sm text-on-surface-variant">Modo demostración: inventario y lotes se guardan en este navegador; no se sincronizan con un servidor.</p>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">El stock se consulta y actualiza en el servidor. Los datos de trazabilidad de los lotes (proveedor, número y vencimiento) todavía se conservan solo en este navegador.</p>
     </section>`;
 
   const formMount = container.querySelector("#receipt-form-mount");
@@ -473,19 +493,19 @@ export function renderInventoryModule(container) {
         </section>`;
 
       const form = formMount.querySelector("#stock-receipt-form");
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const values = new FormData(form);
         const error = form.querySelector("#receipt-form-error");
         try {
-          const receipt = registerStockReceipt({
+          const receipt = await registerStockReceipt({
             productId: product.id,
             quantity: Number(values.get("quantity")),
             supplier: String(values.get("supplier") ?? ""),
             lot: String(values.get("lot") ?? ""),
             expiresAt: String(values.get("expiresAt") ?? ""),
           });
-          renderInventoryModule(container);
+          await renderInventoryModule(container);
           const status = document.createElement("p");
           status.className = "rounded-lg bg-tertiary-container p-space-md text-on-tertiary-container";
           status.setAttribute("role", "status");
@@ -504,11 +524,33 @@ export function renderInventoryModule(container) {
   });
 }
 
-export function renderPredictiveAlertsModule(container) {
+export async function renderPredictiveAlertsModule(container) {
+  const requestId = ++alertsRenderSequence;
+  container.innerHTML = `
+    <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
+      <h1 id="module-title" class="font-headline-xl text-headline-xl text-on-surface">Alertas Predictivas</h1>
+      <p class="font-body-md text-body-md text-on-surface-variant" role="status">Consultando existencias del servidor...</p>
+    </section>`;
+
   let alerts;
   try {
-    alerts = calculateInventoryAlerts(getInventory(), getStockReceipts());
+    alerts = calculateInventoryAlerts(
+      await loadInventoryFromApi(),
+      getStockReceipts(),
+    );
+    if (
+      requestId !== alertsRenderSequence ||
+      container.dataset.route !== "alertas-predictivas"
+    ) {
+      return;
+    }
   } catch (error) {
+    if (
+      requestId !== alertsRenderSequence ||
+      container.dataset.route !== "alertas-predictivas"
+    ) {
+      return;
+    }
     console.error("No se pudieron calcular las alertas de inventario:", error);
     container.innerHTML = `
       <section class="flex flex-col gap-space-lg p-margin-lg" aria-labelledby="module-title">
