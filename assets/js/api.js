@@ -1,8 +1,15 @@
 const configuredBaseUrl =
-  window.MUNDIALITO_API_URL ||
+  (typeof window !== "undefined" && window.MUNDIALITO_API_URL) ||
   "https://minimarket-mundialito-frontend.onrender.com/api";
 
-export const API_BASE_URL = configuredBaseUrl.replace(/\/+$/, "");
+export let API_BASE_URL = configuredBaseUrl.replace(/\/+$/, "");
+
+export function configureApiBaseUrl(baseUrl) {
+  if (typeof baseUrl !== "string" || !/^https?:\/\//i.test(baseUrl.trim())) {
+    throw new Error("La URL del backend debe comenzar con http:// o https://.");
+  }
+  API_BASE_URL = baseUrl.trim().replace(/\/+$/, "");
+}
 
 const PAYMENT_CODES = new Map([
   ["Efectivo", "EFECTIVO"],

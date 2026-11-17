@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
@@ -13,24 +14,23 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import {
+  API_BASE_URL,
+  addProductStock,
+  configureApiBaseUrl,
+  createSale,
+  findProductByBarcode,
+  listProducts,
+  listSales,
+} from './assets/js/api';
 
-const products = [
-  { id: 1, name: 'Arroz 5kg', category: 'Abarrotes', price: 18.5, stock: 12 },
-  { id: 2, name: 'Gaseosa 2L', category: 'Bebidas', price: 9.8, stock: 18 },
-  { id: 3, name: 'Leche 1L', category: 'Lácteos', price: 7.2, stock: 14 },
-  { id: 4, name: 'Detergente', category: 'Limpieza', price: 13.5, stock: 9 },
-  { id: 5, name: 'Fideos 1kg', category: 'Abarrotes', price: 6.9, stock: 22 },
-  { id: 6, name: 'Agua 1.5L', category: 'Bebidas', price: 5.4, stock: 26 },
-  { id: 7, name: 'Yogur natural', category: 'Lácteos', price: 4.4, stock: 11 },
-  { id: 8, name: 'Cloro 1L', category: 'Limpieza', price: 11.2, stock: 8 },
-];
+configureApiBaseUrl(Constants.expoConfig?.extra?.apiBaseUrl || API_BASE_URL);
 
 const categories = ['Todos', 'Abarrotes', 'Bebidas', 'Lácteos', 'Limpieza'];
 const paymentMethods = [
   { id: 'Efectivo', icon: 'payments' },
   { id: 'Tarjeta', icon: 'credit-card' },
   { id: 'Yape', icon: 'qr-code-2' },
-  { id: 'Plin', icon: 'qr-code-2' },
 ];
 const formatCurrency = (value) => `S/ ${Number(value || 0).toFixed(2)}`;
 
@@ -108,7 +108,7 @@ export default function App() {
   const [sales, setSales] = useState([]);
   const [salesTotal, setSalesTotal] = useState(0);
   const [saleCount, setSaleCount] = useState(0);
-  const [inventory, setInventory] = useState(products);
+  const [inventory, setInventory] = useState([]);
   const [restockIds, setRestockIds] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [receivingProductId, setReceivingProductId] = useState(null);
@@ -117,6 +117,12 @@ export default function App() {
   const [receiptLot, setReceiptLot] = useState('');
   const [receiptExpiration, setReceiptExpiration] = useState('');
   const [receiptFeedback, setReceiptFeedback] = useState(null);
+  const [apiLoading, setApiLoading] = useState(true);
+  const [apiError, setApiError] = useState('');
+  const [backendReload, setBackendReload] = useState(0);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
+  const [isReceivingStock, setIsReceivingStock] = useState(false);
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -147,6 +153,40 @@ export default function App() {
     cart.find((item) => item.id === scanProduct?.id)?.quantity ?? 0;
   const canScanProduct =
     scanProduct !== undefined && scanProductQuantity < scanProduct.stock;
+
+  useEffect(() => {
+    let active = true;
+
+    const loadBackendData = async () => {
+      setApiLoading(true);
+      setApiError('');
+      try {
+        const [serverInventory, serverSales] = await Promise.all([
+          listProducts(),
+          listSales(),
+        ]);
+        if (!active) return;
+        setInventory(serverInventory);
+        setSales(serverSales);
+        setSalesTotal(serverSales.reduce((total, sale) => total + sale.total, 0));
+        setSaleCount(serverSales.length);
+      } catch (error) {
+        console.error('No se pudieron cargar los datos del backend:', error);
+        if (active) setApiError(error.message);
+      } finally {
+        if (active) setApiLoading(false);
+      }
+    };
+
+    loadBackendData();
+    return () => {
+      active = false;
+    };
+  }, [backendReload]);
+
+  const retryBackendConnection = () => {
+    setBackendReload((current) => current + 1);
+  };
 
   useEffect(() => {
     if (predictiveAlerts.length === 0) {
@@ -210,7 +250,7 @@ export default function App() {
     }
   };
 
-  const handleBarcodeScanned = ({ data }) => {
+  const handleBarcodeScanned = async ({ data }) => {
     if (scanLock.current) return;
     scanLock.current = true;
     setScannerActive(false);
@@ -221,7 +261,26 @@ export default function App() {
       (product) => product.id === assignedProductId,
     );
     if (!assignedProduct) {
-      setScanFeedback(`Código detectado: ${data}. Selecciona el producto para vincularlo.`);
+      try {
+        const serverProduct = await findProductByBarcode(data);
+        setInventory((currentInventory) => {
+          const exists = currentInventory.some((product) => product.id === serverProduct.id);
+          return exists
+            ? currentInventory.map((product) =>
+                product.id === serverProduct.id ? serverProduct : product,
+              )
+            : [...currentInventory, serverProduct];
+        });
+        addToCart(serverProduct);
+        setScanFeedback(`${serverProduct.name} reconocido y agregado a la venta.`);
+      } catch (error) {
+        if (error.status === 404) {
+          setScanFeedback(`Código detectado: ${data}. No está vinculado en el servidor; selecciona el producto para usarlo en esta sesión.`);
+        } else {
+          console.error('No se pudo consultar el código de barras:', error);
+          setScanFeedback(`No se pudo consultar el código en el backend: ${error.message}`);
+        }
+      }
       return;
     }
 
@@ -243,7 +302,7 @@ export default function App() {
       [scannedCode]: scanProduct.id,
     }));
     addToCart(scanProduct);
-    setScanFeedback(`Código vinculado a ${scanProduct.name} y agregado a la venta.`);
+    setScanFeedback(`Código usado para agregar ${scanProduct.name}; esta vinculación dura solo esta sesión.`);
     setScannedCode('');
   };
 
@@ -278,54 +337,76 @@ export default function App() {
     );
   };
 
-  const checkout = () => {
-    if (cart.length === 0) return;
-    const sale = {
-      id: `V-${Date.now()}`,
-      soldAt: new Date().toISOString(),
-      cashier: 'Cajero de turno',
-      terminal: 'Caja 01',
-      paymentMethod,
-      items: cart.map((item) => ({ ...item })),
-      total: subtotal,
-      itemCount: totalItems,
-    };
-    setLastSale(sale);
-    setSales((currentSales) => [sale, ...currentSales]);
-    setSalesTotal((total) => total + sale.total);
-    setSaleCount((count) => count + 1);
-    setInventory((currentInventory) =>
-      currentInventory.map((product) => {
-        const soldItem = sale.items.find((item) => item.id === product.id);
-        return soldItem
-          ? { ...product, stock: product.stock - soldItem.quantity }
-          : product;
-      }),
-    );
-    const updatedReceipts = receipts.map((receipt) => ({ ...receipt }));
-    const quantitiesByProduct = new Map(
-      sale.items.map((item) => [item.id, item.quantity]),
-    );
-    updatedReceipts
-      .slice()
-      .sort(
-        (first, second) =>
-          Date.parse(first.receivedAt) - Date.parse(second.receivedAt),
-      )
-      .forEach((receipt) => {
-        let remainingToDeduct = quantitiesByProduct.get(receipt.productId) ?? 0;
-        if (remainingToDeduct === 0) return;
-
-        const receiptRemaining = receipt.remainingQuantity ?? receipt.quantity;
-        const deducted = Math.min(receiptRemaining, remainingToDeduct);
-        receipt.remainingQuantity = receiptRemaining - deducted;
-        quantitiesByProduct.set(receipt.productId, remainingToDeduct - deducted);
+  const checkout = async () => {
+    if (cart.length === 0 || isSubmittingSale) return;
+    setIsSubmittingSale(true);
+    setCheckoutError('');
+    try {
+      const savedSale = await createSale({
+        cashier: 'Cajero de turno',
+        terminal: 'Caja 01',
+        paymentMethod,
+        items: cart.map((product) => ({ product, quantity: product.quantity })),
       });
-    setReceipts(updatedReceipts);
-    setCart([]);
-    setScannerActive(false);
-    setScannerOpen(false);
-    setScreen('receipt');
+      const savedItems = Array.isArray(savedSale.items)
+        ? savedSale.items.map((item) => ({
+            id: String(item.productoId),
+            name: item.nombreProducto,
+            price: Number(item.precioUnitario),
+            quantity: item.cantidad,
+          }))
+        : cart.map((item) => ({ ...item }));
+      const sale = {
+        id: String(savedSale.id ?? `V-${Date.now()}`),
+        soldAt: savedSale.fecha ?? new Date().toISOString(),
+        cashier: savedSale.cajero ?? 'Cajero de turno',
+        terminal: savedSale.terminal ?? 'Caja 01',
+        paymentMethod,
+        items: savedItems,
+        total: Number(savedSale.total ?? subtotal),
+        itemCount: totalItems,
+      };
+      setLastSale(sale);
+      setSales((currentSales) => [sale, ...currentSales]);
+      setSalesTotal((total) => total + sale.total);
+      setSaleCount((count) => count + 1);
+      const updatedReceipts = receipts.map((receipt) => ({ ...receipt }));
+      const quantitiesByProduct = new Map(
+        sale.items.map((item) => [item.id, item.quantity]),
+      );
+      updatedReceipts
+        .slice()
+        .sort(
+          (first, second) =>
+            Date.parse(first.receivedAt) - Date.parse(second.receivedAt),
+        )
+        .forEach((receipt) => {
+          let remainingToDeduct = quantitiesByProduct.get(receipt.productId) ?? 0;
+          if (remainingToDeduct === 0) return;
+
+          const receiptRemaining = receipt.remainingQuantity ?? receipt.quantity;
+          const deducted = Math.min(receiptRemaining, remainingToDeduct);
+          receipt.remainingQuantity = receiptRemaining - deducted;
+          quantitiesByProduct.set(receipt.productId, remainingToDeduct - deducted);
+        });
+      setReceipts(updatedReceipts);
+      setCart([]);
+      setScannerActive(false);
+      setScannerOpen(false);
+      setScreen('receipt');
+
+      try {
+        setInventory(await listProducts());
+      } catch (error) {
+        console.error('La venta se guardó, pero no se pudo actualizar el inventario:', error);
+        setApiError(`La venta sí se guardó, pero no se pudo actualizar el inventario: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('No se pudo registrar la venta:', error);
+      setCheckoutError(error.message);
+    } finally {
+      setIsSubmittingSale(false);
+    }
   };
 
   const logout = () => {
@@ -360,7 +441,7 @@ export default function App() {
     setReceiptFeedback(null);
   };
 
-  const receiveStock = (product) => {
+  const receiveStock = async (product) => {
     const quantity = Number(receiptQuantity);
     const expirationDate = new Date(`${receiptExpiration}T00:00:00`);
     const today = new Date();
@@ -384,30 +465,37 @@ export default function App() {
       return;
     }
 
-    const receipt = {
-      id: `R-${Date.now()}`,
-      productId: product.id,
-      productName: product.name,
-      supplier: receiptSupplier.trim(),
-      quantity,
-      remainingQuantity: quantity,
-      lot: receiptLot.trim(),
-      expiresAt: receiptExpiration,
-      receivedAt: new Date().toISOString(),
-    };
-    setInventory((currentInventory) =>
-      currentInventory.map((item) =>
-        item.id === product.id
-          ? { ...item, stock: item.stock + quantity }
-          : item,
-      ),
-    );
-    setReceipts((currentReceipts) => [receipt, ...currentReceipts]);
-    setReceivingProductId(null);
-    setReceiptFeedback({
-      type: 'success',
-      message: `Recepción confirmada: ${quantity} unidades de ${product.name}, lote ${receipt.lot}.`,
-    });
+    setIsReceivingStock(true);
+    try {
+      const updatedProduct = await addProductStock(product.id, quantity);
+      const receipt = {
+        id: `R-${Date.now()}`,
+        productId: product.id,
+        productName: product.name,
+        supplier: receiptSupplier.trim(),
+        quantity,
+        remainingQuantity: quantity,
+        lot: receiptLot.trim(),
+        expiresAt: receiptExpiration,
+        receivedAt: new Date().toISOString(),
+      };
+      setInventory((currentInventory) =>
+        currentInventory.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
+      );
+      setReceipts((currentReceipts) => [receipt, ...currentReceipts]);
+      setReceivingProductId(null);
+      setReceiptFeedback({
+        type: 'success',
+        message: `Stock actualizado en el backend: ${quantity} unidades de ${product.name}. Los datos del lote son locales a esta sesión.`,
+      });
+    } catch (error) {
+      console.error('No se pudo registrar el ingreso de stock:', error);
+      setReceiptFeedback({ type: 'error', message: error.message });
+    } finally {
+      setIsReceivingStock(false);
+    }
   };
 
   const renderHeader = (eyebrow, title, onBack) => (
@@ -469,6 +557,20 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </View>
+      {apiLoading || apiError ? (
+        <View style={styles.apiStatus}>
+          <Text style={[styles.apiStatusText, apiError && styles.apiStatusTextError]}>
+            {apiError
+              ? `Error de conexión con el backend: ${apiError}`
+              : 'Sincronizando datos con el backend…'}
+          </Text>
+          {apiError ? (
+            <TouchableOpacity accessibilityRole="button" onPress={retryBackendConnection}>
+              <Text style={styles.apiRetry}>Reintentar</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
       {primaryInventoryAlert ? (
         <View>
           <TouchableOpacity
@@ -580,9 +682,20 @@ export default function App() {
             <MaterialIcons name="chevron-right" size={24} color="#64748B" />
           </TouchableOpacity>
 
-          <Text style={styles.demoNote}>
-            Modo de demostración: la información se guarda solo durante esta sesión.
-          </Text>
+          <View style={styles.apiStatus}>
+            <Text style={[styles.apiStatusText, apiError && styles.apiStatusTextError]}>
+              {apiLoading
+                ? 'Conectando con el backend…'
+                : apiError
+                  ? `No se pudieron cargar los datos: ${apiError}`
+                  : 'Productos, ventas y stock conectados al backend.'}
+            </Text>
+            {apiError ? (
+              <TouchableOpacity accessibilityRole="button" onPress={retryBackendConnection}>
+                <Text style={styles.apiRetry}>Reintentar</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -599,7 +712,7 @@ export default function App() {
     });
     const stats = [
       {
-        label: 'Ventas de esta sesión',
+        label: 'Total vendido',
         value: formatCurrency(salesTotal),
         icon: 'payments',
         color: '#087443',
@@ -629,7 +742,7 @@ export default function App() {
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.pageContent}>
           {renderHeader('El Mundialito', 'Resumen')}
-          <Text style={styles.sectionHint}>Indicadores de esta sesión de demostración.</Text>
+          <Text style={styles.sectionHint}>Indicadores sincronizados con el backend.</Text>
 
           <View style={styles.summaryGrid}>
             {stats.map((item) => (
@@ -709,7 +822,7 @@ export default function App() {
                 <Text style={styles.paymentSummaryTotal}>{formatCurrency(payment.total)}</Text>
               </View>
             ))}
-            <Text style={styles.paymentSummaryNote}>Acumulado de las ventas registradas en esta sesión.</Text>
+            <Text style={styles.paymentSummaryNote}>Acumulado de las ventas registradas en el backend.</Text>
           </View>
 
           <View style={styles.panel}>
@@ -938,11 +1051,17 @@ export default function App() {
                   </View>
                   <TouchableOpacity
                     accessibilityRole="button"
+                    disabled={isReceivingStock}
                     onPress={() => receiveStock(product)}
-                    style={styles.confirmReceiptButton}
+                    style={[
+                      styles.confirmReceiptButton,
+                      isReceivingStock && styles.disabledButton,
+                    ]}
                   >
                     <MaterialIcons name="check" size={18} color="#fff" />
-                    <Text style={styles.confirmReceiptText}>Confirmar recepción</Text>
+                    <Text style={styles.confirmReceiptText}>
+                      {isReceivingStock ? 'Guardando ingreso…' : 'Confirmar recepción'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -973,7 +1092,7 @@ export default function App() {
           )}
         </View>
         <Text style={styles.demoNote}>
-          La recepción actualiza el stock de esta sesión. La compra y el lote son una simulación.
+          El stock se guarda en el backend. Proveedor, lote y vencimiento se conservan solo durante esta sesión.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -1088,7 +1207,7 @@ export default function App() {
                 {!scanAssignments[scannedCode] ? (
                   <>
                     <Text style={styles.scannerHint}>
-                      Primera lectura de este código: elige a qué producto corresponde para agregarlo.
+                      El código no está vinculado en el servidor. Elige un producto para usarlo solo en esta sesión.
                     </Text>
                     <TouchableOpacity
                       accessibilityRole="button"
@@ -1097,7 +1216,7 @@ export default function App() {
                       style={[styles.scanAction, !canScanProduct && styles.disabledButton]}
                     >
                       <MaterialIcons name="link" size={19} color="#fff" />
-                      <Text style={styles.scanActionText}>Vincular código y agregar</Text>
+                      <Text style={styles.scanActionText}>Usar código y agregar</Text>
                     </TouchableOpacity>
                   </>
                 ) : null}
@@ -1298,7 +1417,7 @@ export default function App() {
             <Text style={styles.totalLabel}>Total a cobrar</Text>
             <Text style={styles.totalStrong}>{formatCurrency(subtotal)}</Text>
           </View>
-          <Text style={styles.paymentLabel}>Medio de pago · simulación</Text>
+          <Text style={styles.paymentLabel}>Medio de pago</Text>
           <View style={styles.paymentOptions}>
             {paymentMethods.map(({ id, icon }) => {
               const selected = paymentMethod === id;
@@ -1324,14 +1443,24 @@ export default function App() {
           </View>
           <TouchableOpacity
             accessibilityRole="button"
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 || isSubmittingSale}
             onPress={checkout}
-            style={[styles.checkoutButton, cart.length === 0 && styles.disabledButton]}
+            style={[
+              styles.checkoutButton,
+              (cart.length === 0 || isSubmittingSale) && styles.disabledButton,
+            ]}
           >
             <MaterialIcons name="payments" size={20} color="#fff" />
-            <Text style={styles.checkoutText}>Registrar venta</Text>
+            <Text style={styles.checkoutText}>
+              {isSubmittingSale ? 'Guardando venta…' : 'Registrar venta'}
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.checkoutNote}>Pago simulado. La venta y su medio de pago aparecen en el resumen del administrador.</Text>
+          {checkoutError ? (
+            <Text accessibilityRole="alert" style={styles.receiptFeedbackError}>
+              No se pudo guardar la venta: {checkoutError}
+            </Text>
+          ) : null}
+          <Text style={styles.checkoutNote}>La venta y el descuento de stock se guardan en el backend.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1347,7 +1476,7 @@ export default function App() {
           </View>
           <Text style={styles.receiptTitle}>Venta registrada</Text>
           <Text style={styles.receiptSubtitle}>
-            Pago simulado con {lastSale?.paymentMethod}. El registro es válido durante esta sesión.
+            Venta guardada en el backend con medio de pago {lastSale?.paymentMethod}.
           </Text>
 
           <View style={styles.receiptTotal}>
@@ -1448,6 +1577,10 @@ const styles = StyleSheet.create({
   roleTitle: { color: '#172B4D', fontSize: 15, fontWeight: '700' },
   roleDescription: { color: '#64748B', fontSize: 12, marginTop: 4, lineHeight: 17 },
   demoNote: { color: '#718096', fontSize: 12, lineHeight: 18, marginTop: 14 },
+  apiStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#EFF6FF', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, marginBottom: 12 },
+  apiStatusText: { flex: 1, color: '#3159B8', fontSize: 12, lineHeight: 17 },
+  apiStatusTextError: { color: '#B42318' },
+  apiRetry: { color: '#3159B8', fontSize: 12, fontWeight: '800', marginLeft: 10 },
   pageContent: { padding: 18, paddingBottom: 36, width: '100%', maxWidth: 1100, alignSelf: 'center' },
   topBar: { minHeight: 58, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   headerTitleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center' },
