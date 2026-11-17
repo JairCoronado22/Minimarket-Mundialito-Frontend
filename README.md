@@ -94,7 +94,9 @@ El backend incluye [backend/Dockerfile](./backend/Dockerfile), compatible con Ja
 
 ### Publicar la interfaz Expo en Render
 
-Para publicar la interfaz móvil/web actual de Expo (y no la página HTML antigua de la raíz), configura el Static Site con la raíz del repositorio, Build Command `npm install && npx expo export -p web` y Publish Directory `dist`. `app.json` configura `expo.extra.apiBaseUrl` con la URL del backend; la app usa esa API para cargar productos y ventas, registrar ventas e ingresar stock.
+Para publicar la interfaz móvil/web actual de Expo (y no la página HTML antigua de la raíz), configura el Static Site con la raíz del repositorio, Build Command `npm ci && npm run lint && npm test && npm run build:web` y Publish Directory `dist`. Así Render valida el frontend antes de publicar. `app.json` configura `expo.extra.apiBaseUrl` con la URL del backend; la app usa esa API para cargar productos y ventas, registrar ventas e ingresar stock.
+
+El workflow [`.github/workflows/ci-backend.yml`](./.github/workflows/ci-backend.yml) ejecuta las pruebas Maven con Java 25 y valida el frontend (lint, pruebas de API y export web) en cada pull request hacia `master` y cada push a esa rama. Para impedir que se fusione un pull request con checks fallidos, configura ambos jobs como verificaciones requeridas en las reglas de protección de `master` en GitHub.
 
 En pgAdmin, selecciona `mundialito_db` y abre Query Tool para verificar las tablas después del primer inicio del backend; el panel Messages debe mostrar que Flyway aplicó las migraciones disponibles. La API ofrece:
 

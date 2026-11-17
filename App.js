@@ -140,7 +140,7 @@ export default function App() {
   const expirationAlerts = predictiveAlerts.filter(
     (alert) => alert.type === 'expiration',
   );
-  const bellAnimation = useRef(new Animated.Value(0)).current;
+  const [bellAnimation] = useState(() => new Animated.Value(0));
   const bellRotation = bellAnimation.interpolate({
     inputRange: [-1, 1],
     outputRange: ['-18deg', '18deg'],
