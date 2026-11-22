@@ -1,5 +1,6 @@
 package com.mundialito.producto;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Producto p where p.id = :id")
     Optional<Producto> findByIdForUpdate(@Param("id") Long id);
+
+    List<Producto> findAllByStockGondolaLessThanEqual(Integer stockMax);
 }

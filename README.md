@@ -110,3 +110,29 @@ Para registrar una venta, envía `cajero`, `terminal`, `medioPago` (`"EFECTIVO"`
 La integración Culqi todavía no procesa pagos y las variables `CULQI_PUBLIC_KEY` y `CULQI_SECRET_KEY` no se usan. El POS web obtiene productos, busca códigos escaneados, registra ventas y el panel Ventas & Cajas consulta el historial del servidor. El registro de Tarjeta/Yape es manual y de demostración; no habilita cobros reales. No guardes ni envíes una llave secreta al navegador o al repositorio. Antes de activar pagos digitales hay que implementar y probar un flujo seguro de Checkout y confirmar el resultado con Culqi.
 
 La API actual no tiene autenticación/autorización para producción: mantenla local mientras se integra un mecanismo de acceso seguro.
+
+## Módulo de IA
+
+El backend incluye un módulo de IA (`com.mundialito.ia`) que implementa algoritmos de búsqueda, regresión y clasificación para apoyar la gestión del minimarket. Los algoritmos se implementan en Java puro, sin dependencias externas de Machine Learning.
+
+### APIs disponibles
+
+- **`GET /api/ia/reposicion`** — Plan de reposición de stock usando 4 algoritmos de búsqueda (BFS, DFS, A*, Hill Climbing). Parámetros opcionales: `stockUmbral` (default 15), `stockMinimo` (default 30), `diasHistorial` (default 30). Devuelve la comparación de los 4 algoritmos con costos, nodos expandidos y tiempo de ejecución.
+
+- **`GET /api/ia/demanda/{productoId}`** — Predicción de demanda de un producto usando regresión lineal y polinomial. Parámetro opcional: `diasHistorial` (default 30). Devuelve la predicción, intervalo de confianza, MAE y RMSE.
+
+- **`GET /api/ia/riesgo`** — Clasificación de riesgo de todos los productos usando 5 modelos (Regresión Logística, SVM, KNN, Árbol de Decisión, AdaBoost). Devuelve alertas ordenadas por nivel de riesgo (ALTO, MEDIO, BAJO).
+
+- **`GET /api/ia/comparar`** — Comparación de los 5 modelos de clasificación con métricas de precisión, recall y F1 Score.
+
+### Algoritmos implementados
+
+**Búsqueda:** BFS, DFS, A* (con heurística de urgencia), Hill Climbing — para planificación de reposición de stock.
+
+**Regresión:** Regresión lineal (mínimos cuadrados) y polinomial (grado configurable) — para predicción de demanda.
+
+**Clasificación:** Regresión Logística, SVM (kernel lineal), KNN (distancia euclidiana), Árbol de Decisión (ID3 con entropía), AdaBoost (ensemble de stumps) — para clasificación de riesgo de stock.
+
+### Base de datos
+
+La migración V5 crea la tabla `ventas_diarias` que agrupa las ventas por producto y día, alimentando los modelos de IA. Se pobla automáticamente con datos históricos desde `detalle_venta` y `ventas`.
