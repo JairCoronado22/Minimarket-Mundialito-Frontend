@@ -52,6 +52,17 @@ public class RegresionService {
                     0.0, 0.0, "Sin datos", diasHistorial);
         }
 
+        // Caso: solo 1 día de ventas, usar el promedio como predicción
+        if (historial.size() == 1) {
+            double cantidad = historial.get(0).getCantidadVendida();
+            return new PrediccionDemandaDTO(
+                    productoId, producto.getNombre(),
+                    Math.round(cantidad * 100.0) / 100.0,
+                    0.0,
+                    Math.round(cantidad * 200.0) / 100.0,
+                    0.0, 0.0, "Promedio", diasHistorial);
+        }
+
         // Convertir a arrays numéricos: x = día secuencial, y = cantidad vendida
         int n = historial.size();
         double[] x = new double[n];
@@ -74,14 +85,19 @@ public class RegresionService {
         String modeloMejor = "Lineal";
 
         if (n >= 3) {
-            RegresionPolinomial polinomial = RegresionPolinomial.entrenar(x, y, 2);
-            prediccionPolinomial = polinomial.predecir(n);
-            maePolinomial = polinomial.calcularMAE(x, y);
-            rmsePolinomial = polinomial.calcularRMSE(x, y);
+            try {
+                RegresionPolinomial polinomial = RegresionPolinomial.entrenar(x, y, 2);
+                prediccionPolinomial = polinomial.predecir(n);
+                maePolinomial = polinomial.calcularMAE(x, y);
+                rmsePolinomial = polinomial.calcularRMSE(x, y);
 
-            // Elegir el modelo con menor MAE
-            if (maePolinomial < maeLineal) {
-                modeloMejor = "Polinomial";
+                // Elegir el modelo con menor MAE
+                if (maePolinomial < maeLineal) {
+                    modeloMejor = "Polinomial";
+                }
+            } catch (IllegalArgumentException e) {
+                // Si la matriz es singular, quedarse con el modelo lineal
+                modeloMejor = "Lineal";
             }
         }
 
@@ -89,8 +105,11 @@ public class RegresionService {
         double maeFinal = modeloMejor.equals("Polinomial") ? maePolinomial : maeLineal;
         double rmseFinal = modeloMejor.equals("Polinomial") ? rmsePolinomial : rmseLineal;
 
+        // La demanda no puede ser negativa: forzar mínimo 0
+        prediccionFinal = Math.max(0.0, prediccionFinal);
+
         // Intervalo de confianza simple: predicción ± 2*RMSE
-        double intervaloInferior = Math.max(0, prediccionFinal - 2 * rmseFinal);
+        double intervaloInferior = Math.max(0.0, prediccionFinal - 2 * rmseFinal);
         double intervaloSuperior = prediccionFinal + 2 * rmseFinal;
 
         return new PrediccionDemandaDTO(
