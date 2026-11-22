@@ -123,6 +123,14 @@ export default function App() {
   const [checkoutError, setCheckoutError] = useState('');
   const [isSubmittingSale, setIsSubmittingSale] = useState(false);
   const [isReceivingStock, setIsReceivingStock] = useState(false);
+  const [iaTab, setIaTab] = useState('riesgo');
+  const [iaRiesgoData, setIaRiesgoData] = useState(null);
+  const [iaReposicionData, setIaReposicionData] = useState(null);
+  const [iaDemandaData, setIaDemandaData] = useState(null);
+  const [iaMetricasData, setIaMetricasData] = useState(null);
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaError, setIaError] = useState('');
+  const [iaDemandaProduct, setIaDemandaProduct] = useState('');
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -186,6 +194,80 @@ export default function App() {
 
   const retryBackendConnection = () => {
     setBackendReload((current) => current + 1);
+  };
+
+  // ---------------------------------------------------------------------------
+  // IA API helpers
+  // ---------------------------------------------------------------------------
+
+  const fetchIA = async (path) => {
+    const response = await fetch(`${API_BASE_URL}/ia${path}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Error ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  };
+
+  const loadIaRiesgo = async () => {
+    setIaLoading(true);
+    setIaError('');
+    try {
+      const data = await fetchIA('/riesgo');
+      setIaRiesgoData(data);
+    } catch (error) {
+      setIaError(error.message);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const loadIaReposicion = async () => {
+    setIaLoading(true);
+    setIaError('');
+    try {
+      const data = await fetchIA('/reposicion?stockUmbral=15&stockMinimo=30&diasHistorial=30');
+      setIaReposicionData(data);
+    } catch (error) {
+      setIaError(error.message);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const loadIaDemanda = async (productoId) => {
+    if (!productoId) return;
+    setIaLoading(true);
+    setIaError('');
+    try {
+      const data = await fetchIA(`/demanda/${productoId}?diasHistorial=30`);
+      setIaDemandaData(data);
+    } catch (error) {
+      setIaError(error.message);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const loadIaMetricas = async () => {
+    setIaLoading(true);
+    setIaError('');
+    try {
+      const data = await fetchIA('/comparar');
+      setIaMetricasData(data);
+    } catch (error) {
+      setIaError(error.message);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const loadIaTab = (tab) => {
+    setIaTab(tab);
+    if (tab === 'riesgo') loadIaRiesgo();
+    else if (tab === 'reposicion') loadIaReposicion();
+    else if (tab === 'metricas') loadIaMetricas();
   };
 
   useEffect(() => {
@@ -782,6 +864,19 @@ export default function App() {
               <Text style={styles.actionTitle}>Reposición</Text>
               <Text style={styles.actionText}>Revisa existencias y arma una lista de productos.</Text>
               <Text style={styles.actionLink}>Revisar inventario  ›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.actionCard, isWide && styles.actionCardWide]}
+              onPress={() => { setIaTab('riesgo'); setIaError(''); loadIaRiesgo(); setScreen('ia'); }}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#F3E8FF' }]}>
+                <MaterialIcons name="insights" size={25} color="#7650B5" />
+              </View>
+              <Text style={styles.actionTitle}>IA Predictiva</Text>
+              <Text style={styles.actionText}>Algoritmos de búsqueda, regresión y clasificación.</Text>
+              <Text style={styles.actionLink}>Ver panel de IA  ›</Text>
             </TouchableOpacity>
           </View>
 
@@ -1516,9 +1611,357 @@ export default function App() {
     </SafeAreaView>
   );
 
+  // ---------------------------------------------------------------------------
+  // IA Predictive Screen
+  // ---------------------------------------------------------------------------
+
+  const renderIAScreen = () => {
+    const tabs = [
+      { id: 'riesgo', label: 'Riesgo', icon: 'warning' },
+      { id: 'reposicion', label: 'Reposición', icon: 'inventory-2' },
+      { id: 'demanda', label: 'Demanda', icon: 'trending-up' },
+      { id: 'metricas', label: 'Métricas', icon: 'analytics' },
+    ];
+
+    const renderIaTabs = () => (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            accessibilityRole="button"
+            onPress={() => loadIaTab(tab.id)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: iaTab === tab.id ? '#7650B5' : '#F0F3F7',
+            }}
+          >
+            <MaterialIcons
+              name={tab.icon}
+              size={16}
+              color={iaTab === tab.id ? '#fff' : '#64748B'}
+            />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: iaTab === tab.id ? '#fff' : '#64748B',
+                marginLeft: 6,
+              }}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+
+    const renderIaLoading = () => (
+      <View style={{ padding: 40, alignItems: 'center' }}>
+        <Text style={{ color: '#64748B', fontSize: 14 }}>Cargando datos de IA...</Text>
+      </View>
+    );
+
+    const renderIaError = () => (
+      <View style={{ padding: 16, backgroundColor: '#FEE4E2', borderRadius: 12, borderWidth: 1, borderColor: '#FDA29B' }}>
+        <Text style={{ color: '#9B1C1C', fontSize: 13 }}>{iaError}</Text>
+      </View>
+    );
+
+    const renderRiesgoTab = () => {
+      if (iaLoading) return renderIaLoading();
+      if (iaError) return renderIaError();
+      if (!iaRiesgoData || iaRiesgoData.length === 0) {
+        return (
+          <View style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5EAF2', alignItems: 'center' }}>
+            <MaterialIcons name="info" size={40} color="#94A3B8" />
+            <Text style={{ color: '#64748B', fontSize: 14, marginTop: 12, textAlign: 'center' }}>
+              No hay datos suficientes para clasificar el riesgo. Registra más ventas para alimentar los modelos.
+            </Text>
+          </View>
+        );
+      }
+
+      const alto = iaRiesgoData.filter((a) => a.riesgo === 'ALTO').length;
+      const medio = iaRiesgoData.filter((a) => a.riesgo === 'MEDIO').length;
+      const bajo = iaRiesgoData.filter((a) => a.riesgo === 'BAJO').length;
+
+      return (
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1, padding: 12, backgroundColor: '#FEE4E2', borderRadius: 12, alignItems: 'center' }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#9B1C1C' }}>{alto}</Text>
+              <Text style={{ fontSize: 11, color: '#9B1C1C' }}>Riesgo Alto</Text>
+            </View>
+            <View style={{ flex: 1, padding: 12, backgroundColor: '#FFF7ED', borderRadius: 12, alignItems: 'center' }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#C2410C' }}>{medio}</Text>
+              <Text style={{ fontSize: 11, color: '#C2410C' }}>Riesgo Medio</Text>
+            </View>
+            <View style={{ flex: 1, padding: 12, backgroundColor: '#F0FDF9', borderRadius: 12, alignItems: 'center' }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#065F46' }}>{bajo}</Text>
+              <Text style={{ fontSize: 11, color: '#065F46' }}>Riesgo Bajo</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>
+            5 modelos: Regresión Logística, SVM, KNN, Árbol de Decisión, AdaBoost
+          </Text>
+          {iaRiesgoData
+            .sort((a, b) => {
+              const order = { ALTO: 0, MEDIO: 1, BAJO: 2 };
+              return (order[a.riesgo] ?? 3) - (order[b.riesgo] ?? 3);
+            })
+            .map((a, idx) => {
+              const color = a.riesgo === 'ALTO' ? '#9B1C1C' : a.riesgo === 'MEDIO' ? '#C2410C' : '#065F46';
+              const bg = a.riesgo === 'ALTO' ? '#FEE4E2' : a.riesgo === 'MEDIO' ? '#FFF7ED' : '#F0FDF9';
+              return (
+                <View key={idx} style={{ padding: 14, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5EAF2' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{a.nombreProducto}</Text>
+                      <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                        Stock: {a.stockActual} | Demanda: {a.demandaPromedio?.toFixed(1) ?? 'N/A'}
+                      </Text>
+                      {a.motivo ? <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{a.motivo}</Text> : null}
+                    </View>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: bg }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color }}>{a.riesgo}</Text>
+                    </View>
+                  </View>
+                  {a.probabilidadRiesgo !== undefined ? (
+                    <View style={{ marginTop: 8, height: 4, backgroundColor: '#F0F3F7', borderRadius: 2 }}>
+                      <View style={{ width: `${Math.round(a.probabilidadRiesgo * 100)}%`, height: 4, borderRadius: 2, backgroundColor: color }} />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+        </View>
+      );
+    };
+
+    const renderReposicionTab = () => {
+      if (iaLoading) return renderIaLoading();
+      if (iaError) return renderIaError();
+      if (!iaReposicionData) {
+        return (
+          <View style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5EAF2', alignItems: 'center' }}>
+            <MaterialIcons name="info" size={40} color="#94A3B8" />
+            <Text style={{ color: '#64748B', fontSize: 14, marginTop: 12, textAlign: 'center' }}>
+              No se pudo cargar el plan de reposición.
+            </Text>
+          </View>
+        );
+      }
+
+      const algorithms = [
+        { key: 'bfs', name: 'BFS', desc: 'Búsqueda en anchura' },
+        { key: 'dfs', name: 'DFS', desc: 'Búsqueda en profundidad' },
+        { key: 'aStar', name: 'A*', desc: 'Búsqueda heurística' },
+        { key: 'hillClimbing', name: 'Hill Climbing', desc: 'Ascensión de colinas' },
+      ];
+
+      return (
+        <View style={{ gap: 12 }}>
+          {algorithms.map((algo) => {
+            const r = iaReposicionData[algo.key];
+            if (!r) return null;
+            const pasos = r.pasos || [];
+            return (
+              <View key={algo.key} style={{ padding: 14, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5EAF2' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{algo.name}</Text>
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: '#ECF1FF' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#3159B8' }}>Costo: {r.costoTotal?.toFixed(2) ?? 0}</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 11, color: '#94A3B8', marginBottom: 8 }}>{algo.desc}</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: pasos.length > 0 ? 8 : 0 }}>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#172B4D' }}>{r.nodosExpandidos ?? 0}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>Nodos</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#172B4D' }}>{(r.tiempoMs ?? 0).toFixed(2)}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>ms</Text>
+                  </View>
+                </View>
+                {pasos.length > 0 ? (
+                  <View style={{ maxHeight: 150 }}>
+                    {pasos.map((p, i) => (
+                      <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#F0F3F7' }}>
+                        <Text style={{ fontSize: 12, color: '#172B4D' }}>{p.orden}. {p.nombreProducto}</Text>
+                        <Text style={{ fontSize: 12, color: '#64748B' }}>{p.cantidad} unid. (S/ {p.costo?.toFixed(2)})</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', padding: 12 }}>No se requieren reposiciones</Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      );
+    };
+
+    const renderDemandaTab = () => {
+      return (
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#172B4D', marginBottom: 4 }}>Producto</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {inventory.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => {
+                        setIaDemandaProduct(p.id);
+                        loadIaDemanda(p.id);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                        backgroundColor: iaDemandaProduct === p.id ? '#7650B5' : '#F0F3F7',
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: iaDemandaProduct === p.id ? '#fff' : '#64748B' }}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+          {iaLoading && iaDemandaProduct ? renderIaLoading() : null}
+          {iaError && iaDemandaProduct ? renderIaError() : null}
+          {iaDemandaData ? (
+            <View style={{ padding: 16, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5EAF2' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#172B4D', marginBottom: 12 }}>
+                {iaDemandaData.nombreProducto || 'Producto'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <View style={{ flex: 1, padding: 12, backgroundColor: '#F3E8FF', borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#7650B5' }}>{iaDemandaData.demandaPredicha?.toFixed(1) ?? 0}</Text>
+                  <Text style={{ fontSize: 11, color: '#7650B5' }}>Unidades predichas</Text>
+                </View>
+                <View style={{ flex: 1, padding: 12, backgroundColor: '#F0F3F7', borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#172B4D' }}>{iaDemandaData.mae?.toFixed(4) ?? 0}</Text>
+                  <Text style={{ fontSize: 11, color: '#64748B' }}>MAE</Text>
+                </View>
+                <View style={{ flex: 1, padding: 12, backgroundColor: '#F0F3F7', borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#172B4D' }}>{iaDemandaData.rmse?.toFixed(4) ?? 0}</Text>
+                  <Text style={{ fontSize: 11, color: '#64748B' }}>RMSE</Text>
+                </View>
+              </View>
+              <View style={{ padding: 10, backgroundColor: '#F0F3F7', borderRadius: 10 }}>
+                <Text style={{ fontSize: 12, color: '#64748B' }}>
+                  Modelo: <Text style={{ fontWeight: '700', color: '#172B4D' }}>{iaDemandaData.modeloUsado || 'N/A'}</Text>
+                  {' '} | Intervalo: {iaDemandaData.intervaloInferior?.toFixed(1) ?? 0} - {iaDemandaData.intervaloSuperior?.toFixed(1) ?? 0} unid.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5EAF2', alignItems: 'center' }}>
+              <MaterialIcons name="trending-up" size={40} color="#94A3B8" />
+              <Text style={{ color: '#64748B', fontSize: 14, marginTop: 12, textAlign: 'center' }}>
+                Selecciona un producto para ver la predicción de demanda.
+              </Text>
+            </View>
+          )}
+        </View>
+      );
+    };
+
+    const renderMetricasTab = () => {
+      if (iaLoading && !iaMetricasData) return renderIaLoading();
+      if (iaError && !iaMetricasData) return renderIaError();
+      if (!iaMetricasData || iaMetricasData.length === 0) {
+        return (
+          <View style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5EAF2', alignItems: 'center' }}>
+            <MaterialIcons name="info" size={40} color="#94A3B8" />
+            <Text style={{ color: '#64748B', fontSize: 14, marginTop: 12, textAlign: 'center' }}>
+              No hay datos suficientes para calcular métricas. Registra más ventas.
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={{ gap: 12 }}>
+          {iaMetricasData.map((m, idx) => {
+            const f1Val = m.f1Score ?? 0;
+            const f1Color = f1Val >= 0.8 ? '#065F46' : f1Val >= 0.5 ? '#C2410C' : '#9B1C1C';
+            const f1Bg = f1Val >= 0.8 ? '#F0FDF9' : f1Val >= 0.5 ? '#FFF7ED' : '#FEE4E2';
+            return (
+              <View key={idx} style={{ padding: 14, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5EAF2' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{m.modelo}</Text>
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: f1Bg }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: f1Color }}>F1: {m.f1Score?.toFixed(3) ?? 'N/A'}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{m.precision !== undefined ? (m.precision * 100).toFixed(1) + '%' : 'N/A'}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>Precisión</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{m.recall !== undefined ? (m.recall * 100).toFixed(1) + '%' : 'N/A'}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>Recall</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{m.verdaderosPositivos ?? 'N/A'}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>VP</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#F0F3F7', borderRadius: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#172B4D' }}>{m.falsosPositivos ?? 'N/A'}</Text>
+                    <Text style={{ fontSize: 10, color: '#64748B' }}>FP</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+          <View style={{ padding: 12, backgroundColor: '#F3E8FF', borderRadius: 12, borderWidth: 1, borderColor: '#E9D5FF' }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#7650B5', marginBottom: 4 }}>Interpretación</Text>
+            <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 16 }}>
+              <Text style={{ fontWeight: '600' }}>Precisión:</Text> Proporción de predicciones positivas correctas.{' '}
+              <Text style={{ fontWeight: '600' }}>Recall:</Text> Capacidad de detectar positivos reales.{' '}
+              <Text style={{ fontWeight: '600' }}>F1:</Text> Media armónica de precisión y recall.{' '}
+              <Text style={{ fontWeight: '600' }}>AdaBoost:</Text> Combina clasificadores débiles para mejorar la precisión general.
+            </Text>
+          </View>
+        </View>
+      );
+    };
+
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.pageContent}>
+          {renderHeader('IA Predictiva', 'Panel de Inteligencia Artificial', () => setScreen('dashboard'))}
+          <Text style={styles.sectionHint}>
+            Algoritmos de búsqueda, regresión y clasificación para la gestión inteligente del minimarket.
+          </Text>
+          {renderIaTabs()}
+          {iaTab === 'riesgo' ? renderRiesgoTab() : null}
+          {iaTab === 'reposicion' ? renderReposicionTab() : null}
+          {iaTab === 'demanda' ? renderDemandaTab() : null}
+          {iaTab === 'metricas' ? renderMetricasTab() : null}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  };
+
   if (screen === 'login') return renderLoginScreen();
   if (screen === 'dashboard') return renderDashboardScreen();
   if (screen === 'inventory') return renderInventoryScreen();
+  if (screen === 'ia') return renderIAScreen();
   if (screen === 'receipt') return renderReceiptScreen();
   return renderPosScreen();
 }
