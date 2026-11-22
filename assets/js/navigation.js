@@ -6,6 +6,7 @@ import {
   renderInventoryModule,
   renderPredictiveAlertsModule,
 } from "./inventory.js";
+import { renderIAModule } from "./ia.js";
 
 const modules = {
   "ventas-cajas": {
@@ -56,6 +57,16 @@ const modules = {
       ["storefront", "Datos del negocio", "Información de la tienda y sus cajas."],
       ["group", "Usuarios y roles", "Accesos y responsabilidades del equipo."],
       ["tune", "Preferencias", "Opciones de funcionamiento de la aplicación."],
+    ],
+  },
+  "ia-predictiva": {
+    title: "IA Predictiva",
+    description:
+      "Algoritmos de búsqueda, regresión y clasificación para la gestión inteligente del minimarket.",
+    areas: [
+      ["psychology", "Modelos de IA", "BFS, DFS, A*, Hill Climbing, Regresión, SVM, KNN, Árboles, AdaBoost."],
+      ["warning", "Riesgo de Stock", "Clasificación de productos por riesgo de quiebre."],
+      ["trending_up", "Predicción de Demanda", "Predicción de ventas futuras por producto."],
     ],
   },
 };
@@ -167,6 +178,8 @@ export function initDashboardNavigation() {
         renderInventoryModule(moduleView);
       } else if (route === "alertas-predictivas") {
         renderPredictiveAlertsModule(moduleView);
+      } else if (route === "ia-predictiva") {
+        renderIAModule(moduleView);
       } else {
         renderModule(moduleView, module);
       }
@@ -199,8 +212,14 @@ export function initDashboardNavigation() {
       renderPredictiveAlertsModule(moduleView);
     }
   };
+  const refreshIAModule = () => {
+    if (moduleView.dataset.route === "ia-predictiva") {
+      renderIAModule(moduleView);
+    }
+  };
   window.addEventListener("retail-pulse-sales-updated", refreshSalesModule);
   window.addEventListener("retail-pulse-sales-updated", refreshInventoryRoute);
+  window.addEventListener("retail-pulse-sales-updated", refreshIAModule);
   window.addEventListener("storage", (event) => {
     if (event.key === "retail-pulse-sales") {
       refreshSalesModule();
