@@ -126,11 +126,9 @@ export default function App() {
   const [iaTab, setIaTab] = useState('riesgo');
   const [iaRiesgoData, setIaRiesgoData] = useState(null);
   const [iaReposicionData, setIaReposicionData] = useState(null);
-  const [iaDemandaData, setIaDemandaData] = useState(null);
   const [iaMetricasData, setIaMetricasData] = useState(null);
   const [iaLoading, setIaLoading] = useState(false);
   const [iaError, setIaError] = useState('');
-  const [iaDemandaProduct, setIaDemandaProduct] = useState('');
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -229,20 +227,6 @@ export default function App() {
     try {
       const data = await fetchIA('/reposicion?stockUmbral=15&stockMinimo=30&diasHistorial=30');
       setIaReposicionData(data);
-    } catch (error) {
-      setIaError(error.message);
-    } finally {
-      setIaLoading(false);
-    }
-  };
-
-  const loadIaDemanda = async (productoId) => {
-    if (!productoId) return;
-    setIaLoading(true);
-    setIaError('');
-    try {
-      const data = await fetchIA(`/demanda/${productoId}?diasHistorial=30`);
-      setIaDemandaData(data);
     } catch (error) {
       setIaError(error.message);
     } finally {
@@ -1619,7 +1603,6 @@ export default function App() {
     const tabs = [
       { id: 'riesgo', label: 'Riesgo', icon: 'warning' },
       { id: 'reposicion', label: 'Reposición', icon: 'inventory-2' },
-      { id: 'demanda', label: 'Demanda', icon: 'trending-up' },
       { id: 'metricas', label: 'Métricas', icon: 'analytics' },
     ];
 
@@ -1807,77 +1790,6 @@ export default function App() {
       );
     };
 
-    const renderDemandaTab = () => {
-      return (
-        <View style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#172B4D', marginBottom: 4 }}>Producto</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {inventory.map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      onPress={() => {
-                        setIaDemandaProduct(p.id);
-                        loadIaDemanda(p.id);
-                      }}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderRadius: 10,
-                        backgroundColor: iaDemandaProduct === p.id ? '#7650B5' : '#F0F3F7',
-                      }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: iaDemandaProduct === p.id ? '#fff' : '#64748B' }}>
-                        {p.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-          {iaLoading && iaDemandaProduct ? renderIaLoading() : null}
-          {iaError && iaDemandaProduct ? renderIaError() : null}
-          {iaDemandaData ? (
-            <View style={{ padding: 16, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5EAF2' }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#172B4D', marginBottom: 12 }}>
-                {iaDemandaData.nombreProducto || 'Producto'}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                <View style={{ flex: 1, padding: 12, backgroundColor: '#F3E8FF', borderRadius: 12, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#7650B5' }}>{iaDemandaData.demandaPredicha?.toFixed(1) ?? 0}</Text>
-                  <Text style={{ fontSize: 11, color: '#7650B5' }}>Unidades predichas</Text>
-                </View>
-                <View style={{ flex: 1, padding: 12, backgroundColor: '#F0F3F7', borderRadius: 12, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#172B4D' }}>{iaDemandaData.mae?.toFixed(4) ?? 0}</Text>
-                  <Text style={{ fontSize: 11, color: '#64748B' }}>MAE</Text>
-                </View>
-                <View style={{ flex: 1, padding: 12, backgroundColor: '#F0F3F7', borderRadius: 12, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#172B4D' }}>{iaDemandaData.rmse?.toFixed(4) ?? 0}</Text>
-                  <Text style={{ fontSize: 11, color: '#64748B' }}>RMSE</Text>
-                </View>
-              </View>
-              <View style={{ padding: 10, backgroundColor: '#F0F3F7', borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, color: '#64748B' }}>
-                  Modelo: <Text style={{ fontWeight: '700', color: '#172B4D' }}>{iaDemandaData.modeloUsado || 'N/A'}</Text>
-                  {' '} | Intervalo: {iaDemandaData.intervaloInferior?.toFixed(1) ?? 0} - {iaDemandaData.intervaloSuperior?.toFixed(1) ?? 0} unid.
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View style={{ padding: 24, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5EAF2', alignItems: 'center' }}>
-              <MaterialIcons name="trending-up" size={40} color="#94A3B8" />
-              <Text style={{ color: '#64748B', fontSize: 14, marginTop: 12, textAlign: 'center' }}>
-                Selecciona un producto para ver la predicción de demanda.
-              </Text>
-            </View>
-          )}
-        </View>
-      );
-    };
-
     const renderMetricasTab = () => {
       if (iaLoading && !iaMetricasData) return renderIaLoading();
       if (iaError && !iaMetricasData) return renderIaError();
@@ -1951,7 +1863,6 @@ export default function App() {
           {renderIaTabs()}
           {iaTab === 'riesgo' ? renderRiesgoTab() : null}
           {iaTab === 'reposicion' ? renderReposicionTab() : null}
-          {iaTab === 'demanda' ? renderDemandaTab() : null}
           {iaTab === 'metricas' ? renderMetricasTab() : null}
         </ScrollView>
       </SafeAreaView>

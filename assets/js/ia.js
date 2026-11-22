@@ -18,10 +18,6 @@ export async function fetchReposicion(stockUmbral, stockMinimo, diasHistorial) {
   return fetchIA(`/reposicion?stockUmbral=${stockUmbral}&stockMinimo=${stockMinimo}&diasHistorial=${diasHistorial}`);
 }
 
-export async function fetchDemanda(productoId, diasHistorial) {
-  return fetchIA(`/demanda/${productoId}?diasHistorial=${diasHistorial}`);
-}
-
 export async function fetchRiesgo() {
   return fetchIA("/riesgo");
 }
@@ -66,7 +62,6 @@ function renderTabs(activeTab) {
   const tabs = [
     { id: "riesgo", label: "Riesgo de Stock", icon: "warning" },
     { id: "reposicion", label: "Plan de Reposición", icon: "inventory_2" },
-    { id: "demanda", label: "Predicción de Demanda", icon: "trending_up" },
     { id: "metricas", label: "Métricas de Modelos", icon: "analytics" },
   ];
   return `
@@ -257,95 +252,7 @@ async function loadReposicionData(container) {
 }
 
 // ---------------------------------------------------------------------------
-// Tab 3 – Predicción de Demanda
-// ---------------------------------------------------------------------------
-
-async function renderDemandaTab() {
-  return `
-    <div class="flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <p class="text-sm text-on-surface-variant">Predicción de demanda usando regresión lineal y polinomial</p>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label class="text-sm font-medium text-on-surface" for="ia-demanda-select">Producto:</label>
-        <select id="ia-demanda-select" class="rounded-lg border border-outline bg-surface-container-lowest px-3 py-1.5 text-sm text-on-surface">
-          <option value="">Cargando productos...</option>
-        </select>
-        <button id="ia-prediccionar" class="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-50" disabled>
-          Predecir demanda
-        </button>
-      </div>
-      <div id="ia-demanda-result" class="hidden"></div>
-    </div>`;
-}
-
-async function loadDemandaProducts(selectEl) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/productos`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) throw new Error("No se pudieron cargar los productos");
-    const productos = await response.json();
-    selectEl.innerHTML = productos
-      .map(p => `<option value="${p.id}">${p.nombre} (Stock: ${p.stockGondola})</option>`)
-      .join("");
-    selectEl.dispatchEvent(new Event("change"));
-  } catch (error) {
-    console.error("Error cargando productos:", error);
-    selectEl.innerHTML = `<option value="">Error al cargar productos</option>`;
-  }
-}
-
-async function loadDemandaResult(productoId, container) {
-  try {
-    const data = await fetchDemanda(productoId, 30);
-    if (!data) {
-      container.innerHTML = `<p class="text-on-surface-variant">No se pudo cargar la predicción.</p>`;
-      return;
-    }
-
-    const modeloLabel = data.modeloUsado === "Polinomial" ? "Regresión Polinomial" : "Regresión Lineal";
-    const modeloIcon = data.modeloUsado === "Polinomial" ? "functions" : "show_chart";
-
-    container.innerHTML = `
-      <div class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
-        <h4 class="font-semibold text-on-surface mb-3">${data.nombreProducto || "Producto"}</h4>
-        <div class="grid gap-3 sm:grid-cols-2">
-          ${card(modeloLabel + " (Modelo seleccionado)", modeloIcon, `
-            <div class="grid grid-cols-2 gap-2">
-              ${statBox("Predicción", `${data.demandaPredicha?.toFixed(1) ?? "0"} unid.`, "próximo día")}
-              ${statBox("MAE", data.mae?.toFixed(4) ?? "0", "error absoluto")}
-              ${statBox("RMSE", data.rmse?.toFixed(4) ?? "0", "error cuadrático")}
-            </div>
-          `)}
-          ${card("Intervalo de Confianza", "stacked_line_chart", `
-            <div class="grid grid-cols-2 gap-2">
-              ${statBox("Inferior", `${data.intervaloInferior?.toFixed(1) ?? "0"} unid.`, "")}
-              ${statBox("Superior", `${data.intervaloSuperior?.toFixed(1) ?? "0"} unid.`, "")}
-            </div>
-          `)}
-        </div>
-        <div class="mt-3 rounded-lg bg-surface-container-higher p-3">
-          <p class="text-sm text-on-surface-variant">
-            Modelo usado: <strong class="text-on-surface">${data.modeloUsado || "N/A"}</strong>
-            | Historial: <strong class="text-on-surface">${data.diasHistorial || 30}</strong> días
-            ${data.modeloUsado === "Polinomial"
-              ? " (La regresión polinomial tuvo menor error que la lineal)"
-              : " (La regresión lineal tuvo menor error que la polinomial)"}
-          </p>
-        </div>
-      </div>`;
-  } catch (error) {
-    console.error("Error cargando demanda:", error);
-    container.innerHTML = `
-      <div class="rounded-xl border border-error-container bg-error-container p-4 text-on-error-container">
-        <p>No se pudo cargar la predicción de demanda: ${error.message}</p>
-      </div>`;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tab 4 – Métricas de Modelos
+// Tab 3 – Métricas de Modelos
 // ---------------------------------------------------------------------------
 
 async function renderMetricasTab() {
@@ -442,14 +349,12 @@ let currentTab = "riesgo";
 const tabRenderers = {
   riesgo: renderRiesgoTab,
   reposicion: renderReposicionTab,
-  demanda: renderDemandaTab,
   metricas: renderMetricasTab,
 };
 
 const tabLoaders = {
   riesgo: loadRiesgoData,
   reposicion: loadReposicionData,
-  demanda: null, // handled by select
   metricas: loadMetricasData,
 };
 
@@ -502,27 +407,6 @@ async function switchTab(container) {
   const refreshBtn = container.querySelector(`#ia-refresh-${currentTab}`);
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => switchTab(container));
-  }
-
-  // Demanda tab special handling
-  if (currentTab === "demanda") {
-    const select = container.querySelector("#ia-demanda-select");
-    const btn = container.querySelector("#ia-prediccionar");
-    const result = container.querySelector("#ia-demanda-result");
-    if (select) {
-      await loadDemandaProducts(select);
-      select.addEventListener("change", () => {
-        btn.disabled = !select.value;
-      });
-    }
-    if (btn) {
-      btn.addEventListener("click", async () => {
-        const productoId = select?.value;
-        if (!productoId) return;
-        result.classList.remove("hidden");
-        await loadDemandaResult(productoId, result);
-      });
-    }
   }
 
   // Auto-load data for tabs with loaders
