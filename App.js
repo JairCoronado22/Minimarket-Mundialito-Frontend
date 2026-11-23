@@ -3,7 +3,10 @@ import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
+  ActivityIndicator,
   Animated,
+  Image,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -20,6 +23,7 @@ import {
   configureApiBaseUrl,
   createSale,
   findProductByBarcode,
+  getSaleStatus,
   listProducts,
   listSales,
 } from './assets/js/api';
@@ -129,6 +133,9 @@ export default function App() {
   const [iaMetricasData, setIaMetricasData] = useState(null);
   const [iaLoading, setIaLoading] = useState(false);
   const [iaError, setIaError] = useState('');
+  const [yapeWaiting, setYapeWaiting] = useState(false);
+  const [yapeTotal, setYapeTotal] = useState(0);
+  const pollingTimerRef = useRef(null);
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -403,6 +410,69 @@ export default function App() {
     );
   };
 
+  const finishSale = async (savedSale) => {
+    const savedItems = Array.isArray(savedSale.items)
+      ? savedSale.items.map((item) => ({
+          id: String(item.productoId),
+          name: item.nombreProducto,
+          price: Number(item.precioUnitario),
+          quantity: item.cantidad,
+        }))
+      : cart.map((item) => ({ ...item }));
+    const sale = {
+      id: String(savedSale.id ?? `V-${Date.now()}`),
+      soldAt: savedSale.fecha ?? new Date().toISOString(),
+      cashier: savedSale.cajero ?? 'Cajero de turno',
+      terminal: savedSale.terminal ?? 'Caja 01',
+      paymentMethod,
+      items: savedItems,
+      total: Number(savedSale.total ?? subtotal),
+      itemCount: totalItems,
+    };
+    setLastSale(sale);
+    setSales((currentSales) => [sale, ...currentSales]);
+    setSalesTotal((total) => total + sale.total);
+    setSaleCount((count) => count + 1);
+    const updatedReceipts = receipts.map((receipt) => ({ ...receipt }));
+    const quantitiesByProduct = new Map(
+      sale.items.map((item) => [item.id, item.quantity]),
+    );
+    updatedReceipts
+      .slice()
+      .sort(
+        (first, second) =>
+          Date.parse(first.receivedAt) - Date.parse(second.receivedAt),
+      )
+      .forEach((receipt) => {
+        let remainingToDeduct = quantitiesByProduct.get(receipt.productId) ?? 0;
+        if (remainingToDeduct === 0) return;
+
+        const receiptRemaining = receipt.remainingQuantity ?? receipt.quantity;
+        const deducted = Math.min(receiptRemaining, remainingToDeduct);
+        receipt.remainingQuantity = receiptRemaining - deducted;
+        quantitiesByProduct.set(receipt.productId, remainingToDeduct - deducted);
+      });
+    setReceipts(updatedReceipts);
+    setCart([]);
+    setScannerActive(false);
+    setScannerOpen(false);
+    setScreen('receipt');
+
+    try {
+      setInventory(await listProducts());
+    } catch (error) {
+      console.error('La venta se guardó, pero no se pudo actualizar el inventario:', error);
+      setApiError(`La venta sí se guardó, pero no se pudo actualizar el inventario: ${error.message}`);
+    }
+  };
+
+  const stopYapePolling = () => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+  };
+
   const checkout = async () => {
     if (cart.length === 0 || isSubmittingSale) return;
     setIsSubmittingSale(true);
@@ -414,64 +484,38 @@ export default function App() {
         paymentMethod,
         items: cart.map((product) => ({ product, quantity: product.quantity })),
       });
-      const savedItems = Array.isArray(savedSale.items)
-        ? savedSale.items.map((item) => ({
-            id: String(item.productoId),
-            name: item.nombreProducto,
-            price: Number(item.precioUnitario),
-            quantity: item.cantidad,
-          }))
-        : cart.map((item) => ({ ...item }));
-      const sale = {
-        id: String(savedSale.id ?? `V-${Date.now()}`),
-        soldAt: savedSale.fecha ?? new Date().toISOString(),
-        cashier: savedSale.cajero ?? 'Cajero de turno',
-        terminal: savedSale.terminal ?? 'Caja 01',
-        paymentMethod,
-        items: savedItems,
-        total: Number(savedSale.total ?? subtotal),
-        itemCount: totalItems,
-      };
-      setLastSale(sale);
-      setSales((currentSales) => [sale, ...currentSales]);
-      setSalesTotal((total) => total + sale.total);
-      setSaleCount((count) => count + 1);
-      const updatedReceipts = receipts.map((receipt) => ({ ...receipt }));
-      const quantitiesByProduct = new Map(
-        sale.items.map((item) => [item.id, item.quantity]),
-      );
-      updatedReceipts
-        .slice()
-        .sort(
-          (first, second) =>
-            Date.parse(first.receivedAt) - Date.parse(second.receivedAt),
-        )
-        .forEach((receipt) => {
-          let remainingToDeduct = quantitiesByProduct.get(receipt.productId) ?? 0;
-          if (remainingToDeduct === 0) return;
 
-          const receiptRemaining = receipt.remainingQuantity ?? receipt.quantity;
-          const deducted = Math.min(receiptRemaining, remainingToDeduct);
-          receipt.remainingQuantity = receiptRemaining - deducted;
-          quantitiesByProduct.set(receipt.productId, remainingToDeduct - deducted);
-        });
-      setReceipts(updatedReceipts);
-      setCart([]);
-      setScannerActive(false);
-      setScannerOpen(false);
-      setScreen('receipt');
+      // Si es Yape, mostrar QR y esperar confirmación
+      if (paymentMethod === 'Yape') {
+        const saleId = savedSale.id;
+        setYapeTotal(Number(savedSale.total ?? subtotal));
+        setYapeWaiting(true);
+        setIsSubmittingSale(false);
 
-      try {
-        setInventory(await listProducts());
-      } catch (error) {
-        console.error('La venta se guardó, pero no se pudo actualizar el inventario:', error);
-        setApiError(`La venta sí se guardó, pero no se pudo actualizar el inventario: ${error.message}`);
+        // Polling cada 3 segundos para verificar el estado
+        pollingTimerRef.current = setInterval(async () => {
+          try {
+            const status = await getSaleStatus(saleId);
+            if (status.estado === 'PAGADA') {
+              stopYapePolling();
+              setYapeWaiting(false);
+              await finishSale(savedSale);
+            }
+          } catch (error) {
+            console.error('Error al verificar estado de venta Yape:', error);
+          }
+        }, 3000);
+        return;
       }
+
+      await finishSale(savedSale);
     } catch (error) {
       console.error('No se pudo registrar la venta:', error);
       setCheckoutError(error.message);
     } finally {
-      setIsSubmittingSale(false);
+      if (paymentMethod !== 'Yape') {
+        setIsSubmittingSale(false);
+      }
     }
   };
 
@@ -1869,12 +1913,59 @@ export default function App() {
     );
   };
 
+  // Modal de espera de pago Yape con QR
+  const renderYapeWaitingModal = () => {
+    if (!yapeWaiting) return null;
+    return (
+      <Modal visible={yapeWaiting} animationType="fade" transparent>
+        <View style={styles.yapeModalOverlay}>
+          <View style={styles.yapeModalCard}>
+            <View style={styles.yapeModalHeader}>
+              <MaterialIcons name="qr-code-2" size={32} color="#6C63FF" />
+              <Text style={styles.yapeModalTitle}>Escanea el QR para pagar</Text>
+            </View>
+            <Text style={styles.yapeModalAmount}>{formatCurrency(yapeTotal)}</Text>
+            <View style={styles.yapeQrContainer}>
+              <Image
+                source={require('../qr-yape.png')}
+                style={styles.yapeQrImage}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.yapeWaitingRow}>
+              <ActivityIndicator size="small" color="#6C63FF" />
+              <Text style={styles.yapeWaitingText}>Esperando confirmación del yapeo...</Text>
+            </View>
+            <Text style={styles.yapeWaitingHint}>
+              El pago se confirmará automáticamente cuando recibas la notificación.
+            </Text>
+            <TouchableOpacity
+              style={styles.yapeCancelBtn}
+              onPress={() => {
+                stopYapePolling();
+                setYapeWaiting(false);
+                setIsSubmittingSale(false);
+              }}
+            >
+              <Text style={styles.yapeCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (screen === 'login') return renderLoginScreen();
   if (screen === 'dashboard') return renderDashboardScreen();
   if (screen === 'inventory') return renderInventoryScreen();
   if (screen === 'ia') return renderIAScreen();
   if (screen === 'receipt') return renderReceiptScreen();
-  return renderPosScreen();
+  return (
+    <View style={{ flex: 1 }}>
+      {renderPosScreen()}
+      {renderYapeWaitingModal()}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -2108,4 +2199,17 @@ const styles = StyleSheet.create({
   receiptTotalValue: { color: '#176B4D', fontSize: 21, fontWeight: '800' },
   receiptRow: { minHeight: 54, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEF1F5' },
   receiptItemCopy: { flex: 1 },
+  // Yape QR modal styles
+  yapeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  yapeModalCard: { width: '100%', maxWidth: 380, backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center' },
+  yapeModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  yapeModalTitle: { color: '#172B4D', fontSize: 18, fontWeight: '800', marginLeft: 10 },
+  yapeModalAmount: { color: '#176B4D', fontSize: 32, fontWeight: '800', marginVertical: 12 },
+  yapeQrContainer: { width: 220, height: 220, backgroundColor: '#fff', borderWidth: 2, borderColor: '#E5EAF2', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginVertical: 12 },
+  yapeQrImage: { width: 200, height: 200 },
+  yapeWaitingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  yapeWaitingText: { color: '#6C63FF', fontSize: 14, fontWeight: '700', marginLeft: 8 },
+  yapeWaitingHint: { color: '#718096', fontSize: 11, textAlign: 'center', marginTop: 6, marginBottom: 16 },
+  yapeCancelBtn: { minHeight: 42, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10, marginTop: 4 },
+  yapeCancelText: { color: '#64748B', fontSize: 14, fontWeight: '700' },
 });

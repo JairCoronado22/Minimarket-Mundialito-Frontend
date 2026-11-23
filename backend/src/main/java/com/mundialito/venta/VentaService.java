@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -32,6 +33,11 @@ public class VentaService {
     @Transactional(readOnly = true)
     public List<Venta> listar() {
         return ventaRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Venta> buscarPorId(Integer id) {
+        return ventaRepository.findById(id);
     }
 
     @Transactional
@@ -76,15 +82,53 @@ public class VentaService {
             total = total.add(subtotal);
         }
 
+        // Yape crea la venta en estado PENDIENTE esperando confirmación del webhook
+        String estado = "YAPE".equals(medioPago) ? "PENDIENTE" : "PAGADA";
         Venta venta = new Venta(OffsetDateTime.now(),
                 request.cajero().trim(), request.terminal().trim(),
-                medioPago, "PAGADA", total);
+                medioPago, estado, total);
         for (Map.Entry<Long, Integer> entry : cantidades.entrySet()) {
             Producto producto = productos.get(entry.getKey());
             BigDecimal subtotal = subtotales.get(entry.getKey());
             venta.agregarItem(new DetalleVenta(producto.getId(), producto.getNombre(),
                     entry.getValue(), producto.getPrecio(), subtotal));
-            producto.setStockGondola(producto.getStockGondola() - entry.getValue());
+            // Solo descontar stock si la venta es PAGADA (no PENDIENTE)
+            if ("PAGADA".equals(estado)) {
+                producto.setStockGondola(producto.getStockGondola() - entry.getValue());
+            }
+        }
+
+        return ventaRepository.save(venta);
+    }
+
+    /**
+     * Confirma una venta PENDIENTE (por ejemplo, tras recibir el webhook de Yape).
+     * Cambia el estado a PAGADO y descuenta el stock de góndola.
+     */
+    @Transactional
+    public Venta confirmarVenta(Integer ventaId) {
+        Venta venta = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Venta " + ventaId + " no encontrada"));
+
+        if (!"PENDIENTE".equals(venta.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La venta ya está en estado " + venta.getEstado() + "; solo se pueden confirmar ventas PENDIENTE");
+        }
+
+        venta.setEstado("PAGADA");
+
+        // Descontar el stock de góndola ahora que el pago está confirmado
+        for (DetalleVenta detalle : venta.getItems()) {
+            Producto producto = productoRepository.findByIdForUpdate(detalle.getProductoId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Producto " + detalle.getProductoId() + " no encontrado"));
+            if (producto.getStockGondola() < detalle.getCantidad()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Stock insuficiente para " + producto.getNombre()
+                                + " al confirmar venta (posible venta duplicada)");
+            }
+            producto.setStockGondola(producto.getStockGondola() - detalle.getCantidad());
         }
 
         return ventaRepository.save(venta);

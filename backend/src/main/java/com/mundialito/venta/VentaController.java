@@ -1,11 +1,13 @@
 package com.mundialito.venta;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +33,14 @@ public class VentaController {
     @PostMapping
     public ResponseEntity<Venta> registrar(@Valid @RequestBody CrearVentaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.registrar(request));
+    }
+
+    @GetMapping("/{id}/estado")
+    public ResponseEntity<Map<String, String>> getEstado(@PathVariable Integer id) {
+        return ventaService.buscarPorId(id)
+                .map(venta -> ResponseEntity.ok(Map.of("id", String.valueOf(venta.getId()),
+                        "estado", venta.getEstado())))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Venta no encontrada")));
     }
 }

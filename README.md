@@ -136,3 +136,79 @@ El backend incluye un módulo de IA (`com.mundialito.ia`) que implementa algorit
 ### Base de datos
 
 La migración V5 crea la tabla `ventas_diarias` que agrupa las ventas por producto y día, alimentando los modelos de IA. Se pobla automáticamente con datos históricos desde `detalle_venta` y `ventas`.
+
+La migración V6 crea la tabla `notificaciones_pago` para almacenar las notificaciones de Yape recibidas desde MacroDroid.
+
+## Webhook de Yape con MacroDroid
+
+El backend incluye un endpoint para recibir notificaciones de pago de Yape directamente desde el celular mediante MacroDroid. Cuando alguien te envía dinero con Yape, MacroDroid detecta la notificación y envía el mensaje al backend, que extrae el monto y el remitente automáticamente.
+
+### APIs disponibles
+
+- **`POST /api/pagos/yape-webhook`** — Recibe el webhook de MacroDroid. Cuerpo: `{"mensaje": "Yape! Juan Pérez te envió S/ 5.00"}`. Responde con el monto extraído, el remitente y el ID de la notificación guardada.
+
+- **`GET /api/pagos/notificaciones`** — Lista todas las notificaciones de Yape recibidas.
+
+- **`GET /api/pagos/notificaciones/pending`** — Lista solo las notificaciones aún no procesadas manualmente.
+
+### Configurar MacroDroid en Android
+
+Sigue estos pasos para que tu celular envíe automáticamente las notificaciones de Yape al backend:
+
+#### 1. Crea una nueva macro en MacroDroid
+
+Abre MacroDroid y toca el botón **+** para crear una nueva macro.
+
+#### 2. Configura el disparador (Trigger) — Notificación de Yape
+
+- En el bloque rojo (**Disparadores**), toca **+** y selecciona **Estado de la aplicación / Widget** → **Contenido de la notificación**.
+- Marca la casilla de **Yape** en la lista de aplicaciones y toca **Aceptar**.
+- En la siguiente ventana (Contenido de texto), elige **Contiene** y escribe `S/`.
+- Toca **Aceptar**.
+
+**Verificación:** En la pantalla principal de la macro, el bloque rojo muestra "Yape" con el filtro "S/".
+
+#### 3. Agrega la acción — Solicitud HTTP
+
+- En el bloque azul (**Acciones**), toca **+**, luego la lupa (🔍) arriba a la derecha.
+- Busca `HTTP` y selecciona **Solicitud HTTP (HTTP Request)**.
+- Se abre el formulario de configuración.
+
+#### 4. Configura el método POST y el cuerpo JSON
+
+- Selecciona el método **POST**.
+- En la URL, pega la dirección de tu backend, por ejemplo:
+  - Local: `http://192.168.1.X:8080/api/pagos/yape-webhook` (reemplaza `192.168.1.X` con la IP de tu PC en la red WiFi).
+  - Render: `https://tu-servidor.onrender.com/api/pagos/yape-webhook`.
+- Ve a la pestaña **Contenido / Cuerpo (Content/Body)**.
+- Elige **Texto plano (Plain text)**.
+- Escribe: `{"mensaje": "{not_title} {not_text}"}`
+  - Para insertar las etiquetas `{not_title}` y `{not_text}`, toca el botón `[...]` y selecciona las variables de la notificación.
+
+**Verificación:** En la pestaña de contenido ves las llaves JSON con las etiquetas de título y texto de la notificación.
+
+#### 5. Guarda la macro y evita que Android la cierre
+
+- Toca el ícono de check (✓) o el botón inferior derecho para guardar la macro.
+- Ponle un nombre, por ejemplo: **Yape Web**.
+- Entra a los **Ajustes** de tu celular → **Aplicaciones** → busca **MacroDroid** → **Batería** → selecciona **Sin restricciones**.
+
+**Verificación:** En la pantalla principal de MacroDroid aparece tu macro creada con su interruptor encendido en verde o azul.
+
+### Seguridad
+
+- **Sin acceso a tu cuenta ni clave:** MacroDroid solo lee el texto de la notificación que aparece en la barra superior. No puede abrir Yape, no ve tu contraseña de 6 dígitos, no conoce tu saldo y no tiene permisos para hacer transferencias.
+- **Tú controlas el destino:** La notificación solo se envía a la dirección web (URL) de tu propio backend.
+- **Apagado inmediato:** Cuando termines de usarlo, puedes apagar la macro o desactivar el permiso de notificaciones en un segundo.
+
+### Formato del mensaje
+
+MacroDroid envía el mensaje combinando el título y el texto de la notificación. El backend intenta extraer:
+
+| Patrón del mensaje | Remitente | Monto |
+|---|---|---|
+| `Yape! Juan Pérez te envió S/ 5.00` | Juan Pérez | 5.00 |
+| `Yape - Transferencia recibida: S/ 150.50 de Juan Pérez` | Juan Pérez | 150.50 |
+| `S/ 25.00 recibido desde María López` | María López | 25.00 |
+
+Si el patrón no coincide, el remitente se guarda como "Desconocido" pero el monto se intenta extraer siempre que aparezca `S/ X.XX`.

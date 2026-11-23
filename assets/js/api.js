@@ -152,3 +152,8 @@ export async function listSales() {
     })),
   }));
 }
+
+export async function getSaleStatus(saleId) {
+  const response = await request(`/ventas/${saleId}/estado`);
+  return response;
+}

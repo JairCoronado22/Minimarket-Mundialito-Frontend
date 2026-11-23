@@ -91,4 +91,8 @@ public class Venta {
     public List<DetalleVenta> getItems() {
         return List.copyOf(items);
     }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
 }
