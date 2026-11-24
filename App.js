@@ -396,7 +396,7 @@ export default function App() {
       setScannerActive(false);
       setScannedCode(data);
 
-      const product = inventory.find((p) => String(p.codigoBarras) === String(data));
+      const product = inventory.find((p) => String(p.barcode) === String(data));
 
       if (!product) {
         setScanFeedback(`Código ${data} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
@@ -732,12 +732,12 @@ export default function App() {
         category: newProductCategory.trim(),
         price,
         stock,
-        codigoBarras: newProductBarcode.trim(),
+        barcode: newProductBarcode.trim(),
       });
       setInventory((current) => [...current, created]);
       setNewProductFeedback({
         type: 'success',
-        message: `${created.name} creado exitosamente con código de barras ${created.codigoBarras || 'auto-generado'}.`,
+        message: `${created.name} creado exitosamente con código de barras ${created.barcode || 'auto-generado'}.`,
       });
       setNewProductName('');
       setNewProductCategory('');
@@ -2133,7 +2133,7 @@ export default function App() {
   const renderProductBarcodeModal = () => {
     const product = inventory.find((p) => String(p.id) === String(qrProductId));
     if (!product || !showQrModal) return null;
-    const barcodeValue = product.codigoBarras;
+    const barcodeValue = product.barcode;
     const barcodeImageUri = barcodeValue ? generateBarcodeDataUri(barcodeValue) : null;
     return (
       <Modal visible={showQrModal} animationType="fade" transparent>
