@@ -18,7 +18,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import bwipJs from 'bwip-js';
+import { toCanvas as bwipToCanvas } from '@bwip-js/browser';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   API_BASE_URL,
@@ -44,7 +44,9 @@ const formatCurrency = (value) => `S/ ${Number(value || 0).toFixed(2)}`;
 function generateBarcodeDataUri(barcodeValue) {
   try {
     const text = String(barcodeValue).padEnd(13, '0').slice(0, 13);
-    const svgString = bwipJs.toSVG({
+    // @bwip-js/browser usa Canvas API del navegador para generar PNG
+    const canvas = document.createElement('canvas');
+    bwipToCanvas(canvas, {
       bcid: 'ean13',
       text: text,
       scale: 3,
@@ -52,10 +54,7 @@ function generateBarcodeDataUri(barcodeValue) {
       includetext: true,
       textxalign: 'center',
     });
-    if (!svgString) return null;
-    // Devolver como data URI (base64) en lugar de Blob URL para compatibilidad con React Native Image en web
-    const encoded = btoa(unescape(encodeURIComponent(svgString)));
-    return `data:image/svg+xml;base64,${encoded}`;
+    return canvas.toDataURL('image/png');
   } catch (error) {
     console.warn('No se pudo generar el código de barras:', error);
     return null;

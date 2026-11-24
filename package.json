@@ -13,11 +13,11 @@
     "build:web": "expo export -p web"
   },
   "dependencies": {
+    "@bwip-js/browser": "^4.11.4",
     "@expo/metro-runtime": "~57.0.16",
     "@expo/vector-icons": "^15.0.2",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
-    "bwip-js": "^4.11.4",
     "expo": "~57.0.28",
     "expo-camera": "~57.0.6",
     "expo-constants": "~57.0.21",
