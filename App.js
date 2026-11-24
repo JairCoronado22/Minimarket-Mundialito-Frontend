@@ -357,10 +357,6 @@ export default function App() {
     return () => animation.stop();
   }, [bellAnimation, predictiveAlerts.length]);
 
-  const zxingReaderRef = useRef(null);
-  const zxingStreamRef = useRef(null);
-  const zxingIntervalRef = useRef(null);
-
   const openCameraScanner = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -464,61 +460,64 @@ export default function App() {
     let reader = null;
     let stream = null;
     let video = null;
-    let interval = null;
+    let controls = null;
+    let cancelled = false;
 
     async function startZxingScanner() {
       try {
         reader = new BrowserMultiFormatReader();
-        reader.timeBetweenScans = 300;
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: 'environment' } },
+          audio: false,
         });
-        zxingStreamRef.current = stream;
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
 
         video = document.createElement('video');
         video.srcObject = stream;
-        await video.play();
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
         video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
 
         const container = document.getElementById('zxing-video-container');
-        if (container) {
-          container.innerHTML = '';
-          container.appendChild(video);
+        if (!container) throw new Error('No se encontró el área de vista previa de la cámara.');
+        container.replaceChildren(video);
+        await video.play();
+        if (cancelled) return;
+
+        const scannerControls = await reader.decodeFromVideoElement(video, (result) => {
+          if (result) processScannedCode(result.getText());
+        });
+        if (cancelled) {
+          scannerControls.stop();
+          return;
         }
-
-        interval = setInterval(() => {
-          if (!video || !reader) return;
-          reader.decodeFromVideoElement(video, false).then((result) => {
-            if (result) {
-              processScannedCode(result.getText());
-            }
-          }).catch(() => {
-            // No barcode found
-          });
-        }, 300);
-
-        zxingReaderRef.current = reader;
-        zxingIntervalRef.current = interval;
+        controls = scannerControls;
       } catch (error) {
         console.error('Error al iniciar ZXing scanner:', error);
+        if (cancelled) return;
         setScannerActive(false);
-        setScanFeedback('No se pudo iniciar la cámara. Asegúrate de usar HTTPS y dar permisos.');
+        setScanFeedback(
+          window.isSecureContext
+            ? 'No se pudo iniciar la cámara. Revisa los permisos del navegador y vuelve a intentarlo.'
+            : 'La cámara requiere una conexión segura (HTTPS) o abrir la aplicación en localhost.',
+        );
       }
     }
 
     startZxingScanner();
 
     return () => {
-      if (interval) clearInterval(interval);
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      cancelled = true;
+      controls?.stop();
+      stream?.getTracks().forEach((track) => track.stop());
+      if (video) video.srcObject = null;
       const container = document.getElementById('zxing-video-container');
-      if (container) container.innerHTML = '';
-      zxingReaderRef.current = null;
-      zxingStreamRef.current = null;
-      zxingIntervalRef.current = null;
+      if (container) container.replaceChildren();
     };
   }, [scannerActive, processScannedCode]);
 
