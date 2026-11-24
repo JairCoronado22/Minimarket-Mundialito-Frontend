@@ -34,10 +34,18 @@ public class ProductoController {
     public void asignarCodigosFaltantes() {
         int count = 0;
         for (Producto producto : productoRepository.findAll()) {
-            if (producto.getCodigoBarras() == null || producto.getCodigoBarras().isBlank()) {
+            String codigoActual = producto.getCodigoBarras();
+            boolean necesitaCodigo = codigoActual == null || codigoActual.isBlank() || !esEan13Valido(codigoActual);
+            if (necesitaCodigo) {
                 String codigo = generarCodigoBarras(producto.getId());
-                // Verificar que no exista ya
-                if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
+                // Si el código actual es inválido, liberarlo para que el nuevo no choque
+                if (codigoActual != null && !codigoActual.isBlank() && !esEan13Valido(codigoActual)) {
+                    // El código inválido se reemplaza directamente
+                    producto.setCodigoBarras(codigo);
+                    productoRepository.saveAndFlush(producto);
+                    count++;
+                    System.out.println("[ProductoController] Corregido código inválido \"" + codigoActual + "\" a \"" + codigo + "\" para producto \"" + producto.getNombre() + "\" (id=" + producto.getId() + ")");
+                } else if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
                     producto.setCodigoBarras(codigo);
                     productoRepository.saveAndFlush(producto);
                     count++;
@@ -45,8 +53,24 @@ public class ProductoController {
             }
         }
         if (count > 0) {
-            System.out.println("[ProductoController] Se asignaron códigos de barras a " + count + " productos sin código.");
+            System.out.println("[ProductoController] Se asignaron/corrigieron códigos de barras a " + count + " productos.");
         }
+    }
+
+    private boolean esEan13Valido(String codigo) {
+        if (codigo == null || codigo.length() != 13) return false;
+        for (int i = 0; i < 13; i++) {
+            if (!Character.isDigit(codigo.charAt(i))) return false;
+        }
+        // Verificar dígito verificador
+        int sum = 0;
+        for (int i = 0; i < 12; i++) {
+            int digit = Character.getNumericValue(codigo.charAt(i));
+            sum += (i % 2 == 0) ? digit : digit * 3;
+        }
+        int expectedCheck = (10 - (sum % 10)) % 10;
+        int actualCheck = Character.getNumericValue(codigo.charAt(12));
+        return expectedCheck == actualCheck;
     }
 
     @GetMapping
