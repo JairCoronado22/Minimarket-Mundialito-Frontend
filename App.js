@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
   ActivityIndicator,
   Animated,
@@ -112,6 +113,7 @@ function getPredictiveAlerts(inventory, receipts, today = new Date()) {
 
 export default function App() {
   const { width } = useWindowDimensions();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const isWide = width >= 700;
   const [screen, setScreen] = useState('login');
   const [activeRole, setActiveRole] = useState('cashier');
@@ -321,10 +323,17 @@ export default function App() {
     return () => animation.stop();
   }, [bellAnimation, predictiveAlerts.length]);
 
-  const html5ScannerRef = useRef(null);
-
   const openCameraScanner = async () => {
     try {
+      const permission = cameraPermission?.granted
+        ? cameraPermission
+        : await requestCameraPermission();
+      if (!permission.granted) {
+        setScannerActive(false);
+        setScanFeedback('Se necesita permiso de cámara para escanear productos.');
+        return;
+      }
+
       scanLock.current = false;
       setScannedCode('');
       setScanFeedback('Enfoca el código de barras del producto.');
@@ -394,80 +403,6 @@ export default function App() {
     },
     [cart, inventory],
   );
-
-  useEffect(() => {
-    if (!scannerActive) return;
-
-    const onScanSuccess = (decodedText) => {
-      handleBarcodeScanned({ data: decodedText });
-    };
-
-    const onScanFailure = () => {
-      // Ignorar errores de escaneo continuo
-    };
-
-    let scanner = null;
-    let videoTrack = null;
-
-    async function startScanner() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        });
-        videoTrack = stream.getVideoTracks()[0];
-
-        // Intentar configurar enfoque continuo
-        if (videoTrack && videoTrack.applyConstraints) {
-          try {
-            await videoTrack.applyConstraints({
-              advanced: [{ focusMode: 'continuous' }],
-            });
-          } catch (focusError) {
-            console.warn('No se pudo configurar enfoque continuo:', focusError);
-          }
-        }
-
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.play();
-
-        const { Html5Qrcode } = await import('html5-qrcode');
-        scanner = new Html5Qrcode(
-          'html5qr-scanner-video-container',
-          { fps: 10, qrbox: { width: 250, height: 150 } },
-          false,
-        );
-        html5ScannerRef.current = scanner;
-
-        await scanner.start(
-          stream,
-          { aspectRatio: 16 / 9, echoVideo: true },
-          onScanSuccess,
-          onScanFailure,
-        );
-      } catch (error) {
-        console.error('Error al iniciar la cámara:', error);
-        setScannerActive(false);
-        setScanFeedback('No se pudo iniciar la cámara. Asegúrate de usar HTTPS y dar permisos.');
-      }
-    }
-
-    startScanner();
-
-    return () => {
-      if (scanner) {
-        try { scanner.stop().catch(() => {}); } catch {}
-      }
-      if (videoTrack) {
-        videoTrack.stop();
-      }
-      html5ScannerRef.current = null;
-    };
-  }, [scannerActive, handleBarcodeScanned]);
 
   const updateQuantity = (productId, delta) => {
     setCart((currentCart) =>
@@ -1510,12 +1445,21 @@ export default function App() {
             </Text>
             {scannerActive ? (
               <View style={styles.cameraPreview}>
-                <View
-                  collapsable={false}
-                  style={{ width: '100%', height: '100%' }}
-                  id="html5qr-scanner-video-container"
-                  accessibilityLabel="Vista previa de la cámara para escanear"
+                <CameraView
+                  accessibilityLabel="Cámara para escanear productos"
+                  barcodeScannerSettings={{
+                    barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'],
+                  }}
+                  facing="back"
+                  onBarcodeScanned={handleBarcodeScanned}
+                  onMountError={({ message }) => {
+                    console.error('No se pudo iniciar la cámara:', message);
+                    setScannerActive(false);
+                    setScanFeedback('No se pudo iniciar la cámara. Comprueba los permisos e inténtalo de nuevo.');
+                  }}
+                  style={StyleSheet.absoluteFillObject}
                 />
+                <View pointerEvents="none" style={styles.cameraFrame} />
               </View>
             ) : (
               <TouchableOpacity
