@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import QRCode from 'react-native-qrcode-svg';
+import Barcode from 'react-native-barcode-expo';
 import {
   API_BASE_URL,
   addProductStock,
@@ -331,19 +331,11 @@ export default function App() {
     setScannerActive(false);
     setScannedCode(data);
 
-    // Formato MUNDIALITO-PROD:{id}
-    const qrPrefix = 'MUNDIALITO-PROD:';
-    if (!data.startsWith(qrPrefix)) {
-      setScanFeedback(`Código no reconocido: ${data}. Solo se aceptan códigos del formato MUNDIALITO-PROD.`);
-      scanLock.current = false;
-      return;
-    }
-
-    const productId = data.substring(qrPrefix.length);
-    const product = inventory.find((p) => String(p.id) === String(productId));
+    // Buscar producto por código de barras (EAN-13)
+    const product = inventory.find((p) => String(p.codigoBarras) === String(data));
 
     if (!product) {
-      setScanFeedback(`Producto ${productId} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
+      setScanFeedback(`Código ${data} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
       scanLock.current = false;
       return;
     }
@@ -360,7 +352,7 @@ export default function App() {
     setScanFeedback(`Escaneado: ${product.name} (+1)`);
   };
 
-  const generateQrCode = (productId) => {
+  const generateBarcode = (productId) => {
     setQrProductId(productId);
     setShowQrModal(true);
   };
@@ -1121,11 +1113,11 @@ export default function App() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     accessibilityRole="button"
-                    onPress={() => generateQrCode(product.id)}
+                    onPress={() => generateBarcode(product.id)}
                     style={styles.qrButton}
                   >
-                    <MaterialIcons name="qr-code-2" size={17} color="#7C3AED" />
-                    <Text style={styles.qrButtonText}>Ver QR</Text>
+                    <MaterialIcons name="view-carousel" size={17} color="#7C3AED" />
+                    <Text style={styles.qrButtonText}>Ver código de barras</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1281,7 +1273,7 @@ export default function App() {
           <View style={styles.scannerPanel}>
             <Text style={styles.scannerTitle}>Escaneo de productos</Text>
             <Text style={styles.scannerHint}>
-              Usa la cámara para leer el código QR del producto. El código debe tener el formato MUNDIALITO-PROD seguido del ID del producto.
+              Usa la cámara para leer el código de barras del producto. El código debe ser un EAN-13 de 13 dígitos.
             </Text>
             {scannerActive ? (
               <View style={styles.cameraPreview}>
@@ -1872,23 +1864,27 @@ export default function App() {
     );
   };
 
-  // Modal de QR de producto
-  const renderProductQrModal = () => {
+  // Modal de código de barras del producto
+  const renderProductBarcodeModal = () => {
     const product = inventory.find((p) => String(p.id) === String(qrProductId));
     if (!product || !showQrModal) return null;
-    const qrData = `MUNDIALITO-PROD:${product.id}`;
+    const barcodeValue = product.codigoBarras;
     return (
       <Modal visible={showQrModal} animationType="fade" transparent>
         <View style={styles.qrModalOverlay}>
           <View style={styles.qrModalCard}>
             <Text style={styles.qrModalTitle}>{product.name}</Text>
             <Text style={styles.qrModalCategory}>{product.category}</Text>
-            <View style={styles.qrCodeContainer}>
-              <QRCode value={qrData} size={200} color="#172B4D" backgroundColor="#fff" />
+            <View style={styles.barcodeContainer}>
+              {barcodeValue ? (
+                <Barcode value={barcodeValue} format="EAN13" width={240} height={80} />
+              ) : (
+                <Text style={styles.noBarcodeText}>Este producto no tiene código de barras asignado.</Text>
+              )}
             </View>
-            <Text style={styles.qrModalData}>{qrData}</Text>
+            <Text style={styles.qrModalData}>{barcodeValue ?? 'Sin código'}</Text>
             <Text style={styles.qrModalHint}>
-              Escanea este código en el punto de venta para agregar el producto al carrito.
+              Escanea este código de barras en el punto de venta para agregar el producto al carrito.
             </Text>
             <TouchableOpacity
               accessibilityRole="button"
@@ -1917,7 +1913,7 @@ export default function App() {
     <View style={{ flex: 1 }}>
       {renderCurrentScreen()}
       {renderYapeWaitingModal()}
-      {renderProductQrModal()}
+      {renderProductBarcodeModal()}
     </View>
   );
 }
@@ -2159,15 +2155,16 @@ const styles = StyleSheet.create({
   yapeWaitingHint: { color: '#718096', fontSize: 11, textAlign: 'center', marginTop: 6, marginBottom: 16 },
   yapeCancelBtn: { minHeight: 42, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10, marginTop: 4 },
   yapeCancelText: { color: '#64748B', fontSize: 14, fontWeight: '700' },
-  // QR Product modal styles
+  // Barcode Product modal styles
   qrButton: { minHeight: 34, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', borderRadius: 9, paddingHorizontal: 9, marginTop: 7 },
   qrButtonText: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 },
   qrModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   qrModalCard: { width: '100%', maxWidth: 380, backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center' },
   qrModalTitle: { color: '#172B4D', fontSize: 20, fontWeight: '800' },
   qrModalCategory: { color: '#718096', fontSize: 13, marginTop: 4, marginBottom: 16 },
-  qrCodeContainer: { width: 220, height: 220, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderWidth: 2, borderColor: '#E5EAF2', borderRadius: 16, marginVertical: 12 },
-  qrModalData: { color: '#475569', fontSize: 12, fontWeight: '700', marginTop: 8, marginBottom: 4 },
+  barcodeContainer: { width: 280, height: 120, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderWidth: 2, borderColor: '#E5EAF2', borderRadius: 16, marginVertical: 12 },
+  noBarcodeText: { color: '#94A3B8', fontSize: 13, textAlign: 'center' },
+  qrModalData: { color: '#475569', fontSize: 14, fontWeight: '700', marginTop: 8, marginBottom: 4, letterSpacing: 3 },
   qrModalHint: { color: '#718096', fontSize: 12, textAlign: 'center', lineHeight: 17, marginBottom: 16 },
   qrModalCloseBtn: { minHeight: 42, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#176B4D', borderRadius: 10, width: '100%' },
   qrModalCloseText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 6 },

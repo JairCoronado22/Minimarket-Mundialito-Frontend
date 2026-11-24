@@ -89,12 +89,45 @@ public class ProductoController {
     }
 
     private Producto guardar(Producto producto) {
+        // Generar código de barras EAN-13 automáticamente si no se proporciona
+        if (producto.getCodigoBarras() == null) {
+            // Guardar primero para obtener el ID de la base de datos
+            Producto temporal = productoRepository.saveAndFlush(producto);
+            String codigoGenerado = generarCodigoBarras(temporal.getId());
+            temporal.setCodigoBarras(codigoGenerado);
+            return productoRepository.saveAndFlush(temporal);
+        }
         try {
             return productoRepository.saveAndFlush(producto);
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "El código de barras ya está asignado a otro producto.", exception);
         }
+    }
+
+    /**
+     * Genera un código de barras EAN-13 con prefijo peruano (775) basado en el ID del producto.
+     * Formato: 7750000 + ID (rellenado con ceros para completar 12 dígitos) + dígito verificador.
+     */
+    private String generarCodigoBarras(Long id) {
+        // Prefijo peruano 775 + ceros + ID para formar 12 dígitos
+        String base = String.format("7750000%05d", id);
+        if (base.length() > 12) {
+            base = base.substring(0, 12);
+        }
+        // Calcular dígito verificador EAN-13
+        int checksum = calcularDigitoVerificadorEan13(base);
+        return base + checksum;
+    }
+
+    private int calcularDigitoVerificadorEan13(String base12) {
+        int sum = 0;
+        for (int i = 0; i < base12.length(); i++) {
+            int digit = Character.getNumericValue(base12.charAt(i));
+            // Posiciones impares (0,2,4...) se suman directas, pares (1,3,5...) se multiplican por 3
+            sum += (i % 2 == 0) ? digit : digit * 3;
+        }
+        return (10 - (sum % 10)) % 10;
     }
 
     private Producto buscarPorId(Long id) {
