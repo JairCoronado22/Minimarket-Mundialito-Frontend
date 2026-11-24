@@ -1927,7 +1927,7 @@ export default function App() {
             <Text style={styles.yapeModalAmount}>{formatCurrency(yapeTotal)}</Text>
             <View style={styles.yapeQrContainer}>
               <Image
-                source={require('../qr-yape.png')}
+                source={require('../qr-yape.png.jpeg')}
                 style={styles.yapeQrImage}
                 resizeMode="contain"
               />
