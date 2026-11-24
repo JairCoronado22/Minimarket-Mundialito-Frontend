@@ -53,8 +53,9 @@ function generateBarcodeDataUri(barcodeValue) {
       textxalign: 'center',
     });
     if (!svgString) return null;
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    return URL.createObjectURL(svgBlob);
+    // Devolver como data URI (base64) en lugar de Blob URL para compatibilidad con React Native Image en web
+    const encoded = btoa(unescape(encodeURIComponent(svgString)));
+    return `data:image/svg+xml;base64,${encoded}`;
   } catch (error) {
     console.warn('No se pudo generar el código de barras:', error);
     return null;
