@@ -22,6 +22,7 @@ import {
   API_BASE_URL,
   addProductStock,
   configureApiBaseUrl,
+  createProduct,
   createSale,
   getSaleStatus,
   listProducts,
@@ -119,6 +120,13 @@ export default function App() {
   const [receiptLot, setReceiptLot] = useState('');
   const [receiptExpiration, setReceiptExpiration] = useState('');
   const [receiptFeedback, setReceiptFeedback] = useState(null);
+  const [showNewProductForm, setShowNewProductForm] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductStock, setNewProductStock] = useState('0');
+  const [newProductBarcode, setNewProductBarcode] = useState('');
+  const [newProductFeedback, setNewProductFeedback] = useState(null);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState('');
   const [backendReload, setBackendReload] = useState(0);
@@ -586,6 +594,56 @@ export default function App() {
     }
   };
 
+  const resetNewProductForm = () => {
+    setShowNewProductForm(false);
+    setNewProductName('');
+    setNewProductCategory('');
+    setNewProductPrice('');
+    setNewProductStock('0');
+    setNewProductBarcode('');
+    setNewProductFeedback(null);
+  };
+
+  const handleCreateProduct = async () => {
+    if (!newProductName.trim()) {
+      setNewProductFeedback({ type: 'error', message: 'Escribe el nombre del producto.' });
+      return;
+    }
+    const price = parseFloat(newProductPrice);
+    if (Number.isNaN(price) || price < 0) {
+      setNewProductFeedback({ type: 'error', message: 'Ingresa un precio válido mayor o igual a cero.' });
+      return;
+    }
+    const stock = parseInt(newProductStock, 10);
+    if (Number.isNaN(stock) || stock < 0) {
+      setNewProductFeedback({ type: 'error', message: 'Ingresa un stock válido mayor o igual a cero.' });
+      return;
+    }
+
+    try {
+      const created = await createProduct({
+        name: newProductName.trim(),
+        category: newProductCategory.trim(),
+        price,
+        stock,
+        barcode: newProductBarcode.trim(),
+      });
+      setInventory((current) => [...current, created]);
+      setNewProductFeedback({
+        type: 'success',
+        message: `${created.name} creado exitosamente con código de barras ${created.barcode || 'auto-generado'}.`,
+      });
+      setNewProductName('');
+      setNewProductCategory('');
+      setNewProductPrice('');
+      setNewProductStock('0');
+      setNewProductBarcode('');
+    } catch (error) {
+      console.error('No se pudo crear el producto:', error);
+      setNewProductFeedback({ type: 'error', message: error.message });
+    }
+  };
+
   const renderHeader = (eyebrow, title, onBack) => (
     <View>
       <View style={styles.topBar}>
@@ -1042,6 +1100,96 @@ export default function App() {
         <Text style={styles.sectionHint}>
           Selecciona productos para reponer o registra lotes recibidos con su proveedor y vencimiento.
         </Text>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() => setShowNewProductForm((current) => !current)}
+          style={styles.newProductButton}
+        >
+          <MaterialIcons name={showNewProductForm ? 'expand-less' : 'add-circle-outline'} size={20} color="#087443" />
+          <Text style={styles.newProductButtonText}>
+            {showNewProductForm ? 'Cerrar formulario' : 'Agregar nuevo producto'}
+          </Text>
+        </TouchableOpacity>
+
+        {showNewProductForm ? (
+          <View style={styles.newProductForm}>
+            <Text style={styles.newProductFormTitle}>Registrar producto nuevo</Text>
+            <Text style={styles.newProductFormHint}>
+              Completa los datos del producto. El código de barras se generará automáticamente si no lo proporcionas.
+            </Text>
+            {newProductFeedback ? (
+              <Text
+                accessibilityRole={newProductFeedback.type === 'error' ? 'alert' : 'text'}
+                style={[
+                  styles.receiptFeedback,
+                  newProductFeedback.type === 'error'
+                    ? styles.receiptFeedbackError
+                    : styles.receiptFeedbackSuccess,
+                ]}
+              >
+                {newProductFeedback.message}
+              </Text>
+            ) : null}
+            <View style={styles.receiptFields}>
+              <TextInput
+                accessibilityLabel="Nombre del producto"
+                onChangeText={setNewProductName}
+                placeholder="Nombre (por ejemplo, Galletas Oreo)"
+                value={newProductName}
+                style={styles.receiptInput}
+              />
+              <TextInput
+                accessibilityLabel="Categoría"
+                onChangeText={setNewProductCategory}
+                placeholder="Categoría (por ejemplo, Abarrotes)"
+                value={newProductCategory}
+                style={styles.receiptInput}
+              />
+              <TextInput
+                accessibilityLabel="Precio"
+                keyboardType="decimal-pad"
+                onChangeText={setNewProductPrice}
+                placeholder="Precio (por ejemplo, 3.50)"
+                value={newProductPrice}
+                style={styles.receiptInput}
+              />
+              <TextInput
+                accessibilityLabel="Stock inicial"
+                keyboardType="number-pad"
+                onChangeText={setNewProductStock}
+                placeholder="Stock inicial (por ejemplo, 50)"
+                value={newProductStock}
+                style={styles.receiptInput}
+              />
+              <TextInput
+                accessibilityLabel="Código de barras (opcional)"
+                keyboardType="number-pad"
+                onChangeText={setNewProductBarcode}
+                placeholder="Código de barras (opcional, se genera automáticamente)"
+                value={newProductBarcode}
+                style={styles.receiptInput}
+              />
+            </View>
+            <View style={styles.newProductActions}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={resetNewProductForm}
+                style={styles.cancelNewProductButton}
+              >
+                <Text style={styles.cancelNewProductText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={handleCreateProduct}
+                style={styles.confirmNewProductButton}
+              >
+                <MaterialIcons name="check" size={18} color="#fff" />
+                <Text style={styles.confirmNewProductText}>Crear producto</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {receiptFeedback ? (
           <Text
@@ -2168,4 +2316,15 @@ const styles = StyleSheet.create({
   qrModalHint: { color: '#718096', fontSize: 12, textAlign: 'center', lineHeight: 17, marginBottom: 16 },
   qrModalCloseBtn: { minHeight: 42, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#176B4D', borderRadius: 10, width: '100%' },
   qrModalCloseText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 6 },
+  // New product form styles
+  newProductButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E7F5ED', borderRadius: 11, paddingHorizontal: 14, marginTop: 10, marginBottom: 8 },
+  newProductButtonText: { color: '#087443', fontSize: 13, fontWeight: '800', marginLeft: 6 },
+  newProductForm: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#C8D9D0', borderRadius: 15, padding: 14, marginBottom: 11 },
+  newProductFormTitle: { color: '#172B4D', fontSize: 16, fontWeight: '800' },
+  newProductFormHint: { color: '#64748B', fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
+  newProductActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 },
+  cancelNewProductButton: { minHeight: 40, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#F1F5F9', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  cancelNewProductText: { color: '#64748B', fontSize: 13, fontWeight: '700' },
+  confirmNewProductButton: { minHeight: 40, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#176B4D', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  confirmNewProductText: { color: '#fff', fontSize: 13, fontWeight: '800', marginLeft: 5 },
 });

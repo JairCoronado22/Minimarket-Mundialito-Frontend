@@ -85,6 +85,40 @@ export async function listProducts() {
   return products.map(mapProduct);
 }
 
+export async function createProduct({ name, category, price, stock, barcode }) {
+  if (typeof name !== "string" || name.trim().length === 0) {
+    throw new Error("El nombre del producto no puede estar vacío.");
+  }
+  const numericPrice = Number(price);
+  if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+    throw new Error("El precio debe ser un número mayor o igual a cero.");
+  }
+  const numericStock = Number(stock ?? 0);
+  if (!Number.isSafeInteger(numericStock) || numericStock < 0) {
+    throw new Error("El stock debe ser un entero mayor o igual a cero.");
+  }
+
+  const payload = {
+    nombre: name.trim(),
+    categoria: (typeof category === "string" && category.trim().length > 0)
+      ? category.trim()
+      : "Abarrotes",
+    precio: numericPrice,
+    stockGondola: numericStock,
+    stockAlmacen: numericStock,
+  };
+
+  if (typeof barcode === "string" && barcode.trim().length > 0) {
+    payload.codigoBarras = barcode.trim();
+  }
+
+  const created = await request("/productos", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return mapProduct(created);
+}
+
 export async function addProductStock(productId, quantity) {
   const numericId = Number(productId);
   if (!Number.isSafeInteger(numericId) || numericId <= 0) {
