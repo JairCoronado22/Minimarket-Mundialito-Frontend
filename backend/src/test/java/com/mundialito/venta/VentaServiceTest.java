@@ -86,20 +86,35 @@ class VentaServiceTest {
         verify(ventaRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "TARJETA", "YAPE" })
-    void registraVentasConMediosDigitalesSinProcesarUnCobroReal(String medioPago) {
+    @Test
+    void registraVentaConTarjetaComoPagada() {
         when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(producto));
         when(ventaRepository.save(org.mockito.ArgumentMatchers.any(Venta.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", medioPago,
+        CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", "TARJETA",
                 List.of(new CrearVentaRequest.ItemVentaRequest(1L, 1)));
 
         Venta venta = ventaService.registrar(request);
 
-        assertEquals(medioPago, venta.getMedioPago());
+        assertEquals("TARJETA", venta.getMedioPago());
         assertEquals("PAGADA", venta.getEstado());
         assertEquals(3, producto.getStockGondola());
+        verify(ventaRepository).save(venta);
+    }
+
+    @Test
+    void registraVentaConYapeComoPendienteSinDescontarStock() {
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(producto));
+        when(ventaRepository.save(org.mockito.ArgumentMatchers.any(Venta.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        CrearVentaRequest request = new CrearVentaRequest("Cajero", "Caja 01", "YAPE",
+                List.of(new CrearVentaRequest.ItemVentaRequest(1L, 1)));
+
+        Venta venta = ventaService.registrar(request);
+
+        assertEquals("YAPE", venta.getMedioPago());
+        assertEquals("PENDIENTE", venta.getEstado());
+        assertEquals(4, producto.getStockGondola());
         verify(ventaRepository).save(venta);
     }
 
