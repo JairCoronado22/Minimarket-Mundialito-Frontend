@@ -1,6 +1,7 @@
 package com.mundialito.pagos;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -25,17 +26,19 @@ public class YapeWebhookService {
      * Ejemplo 1: "Yape! Juan Pérez te envió S/ 5.00"
      * Ejemplo 2: "Yape - Transferencia recibida: S/ 150.50 de Juan Pérez"
      * Ejemplo 3: "S/ 25.00 recibido desde María López"
+     * Ejemplo 4: "Confirmación de Pago Aida Isu* te envió un pago por S/ 2.5. El cód. de seguridad es: 899"
      *
-     * El patrón principal busca "S/ X.XX" para extraer el monto.
+     * El patrón principal busca "S/ X.XX" (o "S/ X.X" con punto final) para extraer el monto.
      * El remitente se intenta extraer del contexto del mensaje.
      */
-    private static final Pattern MONTO_PATTERN = Pattern.compile("S/\\s*([0-9]+(?:\\.[0-9]{1,2})?)");
+    private static final Pattern MONTO_PATTERN = Pattern.compile(
+            "(?i)S/\\.?\\s*(\\d+(?:[.,]\\d{1,2})?\\.?)");
     private static final Pattern ENVIADO_PATTERN = Pattern.compile(
-            "[!\\s](.+?)\\s+te\\s+envi\\u00f3\\s+S/", Pattern.CASE_INSENSITIVE);
+            "(?i)(?:Confirmación de Pago\\s+)?(.+?)\\s+te\\s+envi[óo]\\s+(?:un\\s+pago\\s+por\\s+)?S/");
     private static final Pattern DE_PATTERN = Pattern.compile(
-            "de\\s+(.+?)\\s*$", Pattern.CASE_INSENSITIVE);
+            "(?i)de\\s+(.+?)\\s*$");
     private static final Pattern DESDE_PATTERN = Pattern.compile(
-            "desde\\s+(.+?)\\s*$", Pattern.CASE_INSENSITIVE);
+            "(?i)desde\\s+(.+?)\\s*$");
 
     private final NotificacionPagoRepository repository;
     private final VentaRepository ventaRepository;
@@ -92,7 +95,10 @@ public class YapeWebhookService {
         Matcher matcher = MONTO_PATTERN.matcher(mensaje);
         if (matcher.find()) {
             try {
-                return new BigDecimal(matcher.group(1).replace(",", "."));
+                // Limpia puntos finales y reemplaza comas por puntos
+                String raw = matcher.group(1).replaceAll("\\.$", "").replace(",", ".");
+                // Normaliza a 2 decimales: "2.5" -> "2.50", "5" -> "5.00"
+                return new BigDecimal(raw).setScale(2, RoundingMode.HALF_UP);
             } catch (NumberFormatException e) {
                 return null;
             }
