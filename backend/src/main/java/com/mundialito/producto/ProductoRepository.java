@@ -18,4 +18,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Optional<Producto> findByIdForUpdate(@Param("id") Long id);
 
     List<Producto> findAllByStockGondolaLessThanEqual(Integer stockMax);
+
+    @Query("select p from Producto p where p.codigoBarras is null or p.codigoBarras = ''")
+    List<Producto> findByCodigoBarrasIsNullOrBlank();
+
+    @Query("select p.codigoBarras from Producto p where p.codigoBarras is not null and p.codigoBarras <> ''")
+    List<String> findAllCodigosBarras();
 }

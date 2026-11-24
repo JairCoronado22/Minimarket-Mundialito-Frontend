@@ -32,28 +32,34 @@ public class ProductoController {
     @PostConstruct
     @Transactional
     public void asignarCodigosFaltantes() {
-        int count = 0;
-        for (Producto producto : productoRepository.findAll()) {
-            String codigoActual = producto.getCodigoBarras();
-            boolean necesitaCodigo = codigoActual == null || codigoActual.isBlank() || !esEan13Valido(codigoActual);
-            if (necesitaCodigo) {
-                String codigo = generarCodigoBarras(producto.getId());
-                // Si el código actual es inválido, liberarlo para que el nuevo no choque
-                if (codigoActual != null && !codigoActual.isBlank() && !esEan13Valido(codigoActual)) {
-                    // El código inválido se reemplaza directamente
-                    producto.setCodigoBarras(codigo);
-                    productoRepository.saveAndFlush(producto);
-                    count++;
-                    System.out.println("[ProductoController] Corregido código inválido \"" + codigoActual + "\" a \"" + codigo + "\" para producto \"" + producto.getNombre() + "\" (id=" + producto.getId() + ")");
-                } else if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
-                    producto.setCodigoBarras(codigo);
-                    productoRepository.saveAndFlush(producto);
-                    count++;
-                }
-            }
+        long start = System.currentTimeMillis();
+        // Usar query directo para solo productos sin código válido, en lugar de cargar todos
+        List<Producto> sinCodigo = productoRepository.findByCodigoBarrasIsNullOrBlank();
+        if (sinCodigo.isEmpty()) {
+            long elapsed = System.currentTimeMillis() - start;
+            System.out.println("[ProductoController] Todos los productos tienen código de barras válido (" + elapsed + "ms).");
+            return;
         }
+
+        // Obtener todos los códigos existentes en un solo query para evitar N+1
+        List<String> codigosExistentes = productoRepository.findAllCodigosBarras();
+        java.util.Set<String> codigosUsados = new java.util.HashSet<>(codigosExistentes);
+
+        int count = 0;
+        for (Producto producto : sinCodigo) {
+            String codigo = generarCodigoBarras(producto.getId());
+            // Si el código generado ya existe, intentar con el siguiente ID disponible
+            while (codigosUsados.contains(codigo)) {
+                codigo = generarCodigoBarras(producto.getId() + count + 1000);
+            }
+            producto.setCodigoBarras(codigo);
+            productoRepository.save(producto);
+            codigosUsados.add(codigo);
+            count++;
+        }
+        long elapsed = System.currentTimeMillis() - start;
         if (count > 0) {
-            System.out.println("[ProductoController] Se asignaron/corrigieron códigos de barras a " + count + " productos.");
+            System.out.println("[ProductoController] Se asignaron códigos de barras a " + count + " productos en " + elapsed + "ms.");
         }
     }
 
