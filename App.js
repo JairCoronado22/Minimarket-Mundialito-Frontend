@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Barcode } from 'expo-barcode-generator';
+import bwipJs from 'bwip-js';
 import {
   API_BASE_URL,
   addProductStock,
@@ -38,6 +38,26 @@ const paymentMethods = [
   { id: 'Yape', icon: 'qr-code-2' },
 ];
 const formatCurrency = (value) => `S/ ${Number(value || 0).toFixed(2)}`;
+
+function generateBarcodeDataUri(barcodeValue) {
+  try {
+    const text = String(barcodeValue).padEnd(13, '0').slice(0, 13);
+    const svgString = bwipJs.toSVG({
+      bcid: 'ean13',
+      text: text,
+      scale: 3,
+      height: 10,
+      includetext: true,
+      textxalign: 'center',
+    });
+    if (!svgString) return null;
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    return URL.createObjectURL(svgBlob);
+  } catch (error) {
+    console.warn('No se pudo generar el código de barras:', error);
+    return null;
+  }
+}
 
 function getPredictiveAlerts(inventory, receipts, today = new Date()) {
   const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -2017,6 +2037,7 @@ export default function App() {
     const product = inventory.find((p) => String(p.id) === String(qrProductId));
     if (!product || !showQrModal) return null;
     const barcodeValue = product.barcode;
+    const barcodeImageUri = barcodeValue ? generateBarcodeDataUri(barcodeValue) : null;
     return (
       <Modal visible={showQrModal} animationType="fade" transparent>
         <View style={styles.qrModalOverlay}>
@@ -2024,8 +2045,8 @@ export default function App() {
             <Text style={styles.qrModalTitle}>{product.name}</Text>
             <Text style={styles.qrModalCategory}>{product.category}</Text>
             <View style={styles.barcodeContainer}>
-              {barcodeValue ? (
-                <Barcode value={barcodeValue} options={{ format: 'EAN13', width: 240, height: 80 }} />
+              {barcodeImageUri ? (
+                <Image source={{ uri: barcodeImageUri }} style={{ width: 240, height: 80 }} resizeMode="contain" />
               ) : (
                 <Text style={styles.noBarcodeText}>Este producto no tiene código de barras asignado.</Text>
               )}
