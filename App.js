@@ -17,12 +17,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import {
   API_BASE_URL,
   addProductStock,
   configureApiBaseUrl,
   createSale,
-  findProductByBarcode,
   getSaleStatus,
   listProducts,
   listSales,
@@ -100,10 +100,8 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
-  const [scanSelectionId, setScanSelectionId] = useState(null);
   const [scanFeedback, setScanFeedback] = useState('');
   const [scannedCode, setScannedCode] = useState('');
-  const [scanAssignments, setScanAssignments] = useState({});
   const scanLock = useRef(false);
   const [category, setCategory] = useState('Todos');
   const [cart, setCart] = useState([]);
@@ -136,6 +134,9 @@ export default function App() {
   const [yapeWaiting, setYapeWaiting] = useState(false);
   const [yapeTotal, setYapeTotal] = useState(0);
   const pollingTimerRef = useRef(null);
+  const [qrProductId, setQrProductId] = useState(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const lastScanTimeRef = useRef(0);
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -159,13 +160,6 @@ export default function App() {
     outputRange: ['-18deg', '18deg'],
   });
   const primaryInventoryAlert = predictiveAlerts[0];
-  const scanProduct =
-    inventory.find((product) => product.id === scanSelectionId) ??
-    inventory.find((product) => product.stock > 0);
-  const scanProductQuantity =
-    cart.find((item) => item.id === scanProduct?.id)?.quantity ?? 0;
-  const canScanProduct =
-    scanProduct !== undefined && scanProductQuantity < scanProduct.stock;
 
   useEffect(() => {
     let active = true;
@@ -325,58 +319,50 @@ export default function App() {
 
   const handleBarcodeScanned = async ({ data }) => {
     if (scanLock.current) return;
+
+    // Cooldown de 2 segundos para evitar lecturas repetidas
+    // eslint-disable-next-line react-hooks/purity -- called inside an event handler, not during render
+    const now = Date.now();
+    if (now - lastScanTimeRef.current < 2000) {
+      return;
+    }
+
     scanLock.current = true;
     setScannerActive(false);
     setScannedCode(data);
 
-    const assignedProductId = scanAssignments[data];
-    const assignedProduct = inventory.find(
-      (product) => product.id === assignedProductId,
-    );
-    if (!assignedProduct) {
-      try {
-        const serverProduct = await findProductByBarcode(data);
-        setInventory((currentInventory) => {
-          const exists = currentInventory.some((product) => product.id === serverProduct.id);
-          return exists
-            ? currentInventory.map((product) =>
-                product.id === serverProduct.id ? serverProduct : product,
-              )
-            : [...currentInventory, serverProduct];
-        });
-        addToCart(serverProduct);
-        setScanFeedback(`${serverProduct.name} reconocido y agregado a la venta.`);
-      } catch (error) {
-        if (error.status === 404) {
-          setScanFeedback(`Código detectado: ${data}. No está vinculado en el servidor; selecciona el producto para usarlo en esta sesión.`);
-        } else {
-          console.error('No se pudo consultar el código de barras:', error);
-          setScanFeedback(`No se pudo consultar el código en el backend: ${error.message}`);
-        }
-      }
+    // Formato MUNDIALITO-PROD:{id}
+    const qrPrefix = 'MUNDIALITO-PROD:';
+    if (!data.startsWith(qrPrefix)) {
+      setScanFeedback(`Código no reconocido: ${data}. Solo se aceptan códigos del formato MUNDIALITO-PROD.`);
+      scanLock.current = false;
       return;
     }
 
-    const quantityInCart =
-      cart.find((item) => item.id === assignedProduct.id)?.quantity ?? 0;
-    if (quantityInCart >= assignedProduct.stock) {
-      setScanFeedback(`Código reconocido, pero ${assignedProduct.name} ya no tiene stock disponible.`);
+    const productId = data.substring(qrPrefix.length);
+    const product = inventory.find((p) => String(p.id) === String(productId));
+
+    if (!product) {
+      setScanFeedback(`Producto ${productId} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
+      scanLock.current = false;
       return;
     }
 
-    addToCart(assignedProduct);
-    setScanFeedback(`${assignedProduct.name} reconocido y agregado a la venta.`);
+    const quantityInCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
+    if (quantityInCart >= product.stock) {
+      setScanFeedback(`${product.name} ya no tiene stock disponible.`);
+      scanLock.current = false;
+      return;
+    }
+
+    addToCart(product);
+    lastScanTimeRef.current = now;
+    setScanFeedback(`Escaneado: ${product.name} (+1)`);
   };
 
-  const linkScannedCodeToProduct = () => {
-    if (!scannedCode || !scanProduct || !canScanProduct) return;
-    setScanAssignments((current) => ({
-      ...current,
-      [scannedCode]: scanProduct.id,
-    }));
-    addToCart(scanProduct);
-    setScanFeedback(`Código usado para agregar ${scanProduct.name}; esta vinculación dura solo esta sesión.`);
-    setScannedCode('');
+  const generateQrCode = (productId) => {
+    setQrProductId(productId);
+    setShowQrModal(true);
   };
 
   const enterAs = (role) => {
@@ -1133,6 +1119,14 @@ export default function App() {
                       {receivingProductId === product.id ? 'Cerrar ingreso' : 'Registrar ingreso'}
                     </Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    onPress={() => generateQrCode(product.id)}
+                    style={styles.qrButton}
+                  >
+                    <MaterialIcons name="qr-code-2" size={17} color="#7C3AED" />
+                    <Text style={styles.qrButtonText}>Ver QR</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               {receivingProductId === product.id ? (
@@ -1265,11 +1259,7 @@ export default function App() {
           accessibilityRole="button"
           accessibilityState={{ expanded: scannerOpen }}
           onPress={() => {
-            if (!scannerOpen) {
-              setScanSelectionId((current) =>
-                current ?? inventory.find((product) => product.stock > 0)?.id ?? null,
-              );
-            } else {
+            if (scannerOpen) {
               setScannerActive(false);
             }
             setScannerOpen((current) => !current);
@@ -1291,7 +1281,7 @@ export default function App() {
           <View style={styles.scannerPanel}>
             <Text style={styles.scannerTitle}>Escaneo de productos</Text>
             <Text style={styles.scannerHint}>
-              Usa la cámara del celular para leer un código de barras o QR. También puedes simular la lectura manualmente.
+              Usa la cámara para leer el código QR del producto. El código debe tener el formato MUNDIALITO-PROD seguido del ID del producto.
             </Text>
             {scannerActive ? (
               <View style={styles.cameraPreview}>
@@ -1327,22 +1317,6 @@ export default function App() {
               <View style={styles.scannedCodePanel}>
                 <Text style={styles.scannedCodeLabel}>Código detectado</Text>
                 <Text selectable style={styles.scannedCodeValue}>{scannedCode}</Text>
-                {!scanAssignments[scannedCode] ? (
-                  <>
-                    <Text style={styles.scannerHint}>
-                      El código no está vinculado en el servidor. Elige un producto para usarlo solo en esta sesión.
-                    </Text>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      disabled={!canScanProduct}
-                      onPress={linkScannedCodeToProduct}
-                      style={[styles.scanAction, !canScanProduct && styles.disabledButton]}
-                    >
-                      <MaterialIcons name="link" size={19} color="#fff" />
-                      <Text style={styles.scanActionText}>Usar código y agregar</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : null}
               </View>
             ) : null}
             {scanFeedback ? (
@@ -1360,63 +1334,6 @@ export default function App() {
                 <Text style={styles.scanAgainText}>Escanear otro producto</Text>
               </TouchableOpacity>
             ) : null}
-            <Text style={styles.simulatorLabel}>O simula el escaneo seleccionando un producto:</Text>
-            <View style={styles.scannerChoices}>
-              {inventory.map((product) => {
-                const selected = scanProduct?.id === product.id;
-                const quantityInCart =
-                  cart.find((item) => item.id === product.id)?.quantity ?? 0;
-                const isUnavailable = quantityInCart >= product.stock;
-                return (
-                  <TouchableOpacity
-                    key={product.id}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected, disabled: isUnavailable }}
-                    disabled={isUnavailable}
-                    onPress={() => {
-                      setScanSelectionId(product.id);
-                      setScanFeedback('');
-                    }}
-                    style={[
-                      styles.scannerChoice,
-                      selected && styles.scannerChoiceSelected,
-                      isUnavailable && styles.disabledButton,
-                    ]}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.scannerChoiceText,
-                        selected && styles.scannerChoiceTextSelected,
-                      ]}
-                    >
-                      {product.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.scannerChoiceStock,
-                        selected && styles.scannerChoiceTextSelected,
-                      ]}
-                    >
-                      {Math.max(0, product.stock - quantityInCart)} disponibles
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <TouchableOpacity
-              accessibilityRole="button"
-              disabled={!canScanProduct}
-              onPress={() => {
-                if (!scanProduct || !canScanProduct) return;
-                addToCart(scanProduct);
-                setScanFeedback(`${scanProduct.name} escaneado y agregado a la venta.`);
-              }}
-              style={[styles.scanAction, !canScanProduct && styles.disabledButton]}
-            >
-              <MaterialIcons name="qr-code-scanner" size={19} color="#fff" />
-              <Text style={styles.scanActionText}>Simular lectura y agregar</Text>
-            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -1955,6 +1872,38 @@ export default function App() {
     );
   };
 
+  // Modal de QR de producto
+  const renderProductQrModal = () => {
+    const product = inventory.find((p) => String(p.id) === String(qrProductId));
+    if (!product || !showQrModal) return null;
+    const qrData = `MUNDIALITO-PROD:${product.id}`;
+    return (
+      <Modal visible={showQrModal} animationType="fade" transparent>
+        <View style={styles.qrModalOverlay}>
+          <View style={styles.qrModalCard}>
+            <Text style={styles.qrModalTitle}>{product.name}</Text>
+            <Text style={styles.qrModalCategory}>{product.category}</Text>
+            <View style={styles.qrCodeContainer}>
+              <QRCode value={qrData} size={200} color="#172B4D" backgroundColor="#fff" />
+            </View>
+            <Text style={styles.qrModalData}>{qrData}</Text>
+            <Text style={styles.qrModalHint}>
+              Escanea este código en el punto de venta para agregar el producto al carrito.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => setShowQrModal(false)}
+              style={styles.qrModalCloseBtn}
+            >
+              <MaterialIcons name="close" size={20} color="#fff" />
+              <Text style={styles.qrModalCloseText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (screen === 'login') return renderLoginScreen();
   if (screen === 'dashboard') return renderDashboardScreen();
   if (screen === 'inventory') return renderInventoryScreen();
@@ -1964,6 +1913,7 @@ export default function App() {
     <View style={{ flex: 1 }}>
       {renderPosScreen()}
       {renderYapeWaitingModal()}
+      {renderProductQrModal()}
     </View>
   );
 }
@@ -2123,13 +2073,6 @@ const styles = StyleSheet.create({
   scannedCodeValue: { color: '#172B4D', fontSize: 14, fontWeight: '800', marginTop: 3 },
   scanAgainButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E7F5ED', borderRadius: 9, marginTop: 8 },
   scanAgainText: { color: '#176B4D', fontSize: 12, fontWeight: '800', marginLeft: 5 },
-  simulatorLabel: { color: '#475569', fontSize: 11, fontWeight: '700', marginTop: 13 },
-  scannerChoices: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 9 },
-  scannerChoice: { maxWidth: '48%', minWidth: '44%', backgroundColor: '#F6F8FB', borderWidth: 1, borderColor: '#E1E7EF', borderRadius: 9, padding: 8, marginRight: '2%', marginBottom: 7 },
-  scannerChoiceSelected: { backgroundColor: '#176B4D', borderColor: '#176B4D' },
-  scannerChoiceText: { color: '#334155', fontSize: 11, fontWeight: '700' },
-  scannerChoiceTextSelected: { color: '#fff' },
-  scannerChoiceStock: { color: '#718096', fontSize: 10, marginTop: 3 },
   scanAction: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#176B4D', borderRadius: 10, marginTop: 3 },
   scanActionText: { color: '#fff', fontSize: 12, fontWeight: '800', marginLeft: 6 },
   scanFeedback: { color: '#176B4D', fontSize: 12, fontWeight: '700', marginTop: 8 },
@@ -2212,4 +2155,16 @@ const styles = StyleSheet.create({
   yapeWaitingHint: { color: '#718096', fontSize: 11, textAlign: 'center', marginTop: 6, marginBottom: 16 },
   yapeCancelBtn: { minHeight: 42, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10, marginTop: 4 },
   yapeCancelText: { color: '#64748B', fontSize: 14, fontWeight: '700' },
+  // QR Product modal styles
+  qrButton: { minHeight: 34, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', borderRadius: 9, paddingHorizontal: 9, marginTop: 7 },
+  qrButtonText: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 },
+  qrModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  qrModalCard: { width: '100%', maxWidth: 380, backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center' },
+  qrModalTitle: { color: '#172B4D', fontSize: 20, fontWeight: '800' },
+  qrModalCategory: { color: '#718096', fontSize: 13, marginTop: 4, marginBottom: 16 },
+  qrCodeContainer: { width: 220, height: 220, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderWidth: 2, borderColor: '#E5EAF2', borderRadius: 16, marginVertical: 12 },
+  qrModalData: { color: '#475569', fontSize: 12, fontWeight: '700', marginTop: 8, marginBottom: 4 },
+  qrModalHint: { color: '#718096', fontSize: 12, textAlign: 'center', lineHeight: 17, marginBottom: 16 },
+  qrModalCloseBtn: { minHeight: 42, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#176B4D', borderRadius: 10, width: '100%' },
+  qrModalCloseText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 6 },
 });

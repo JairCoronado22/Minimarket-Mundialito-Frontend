@@ -23,6 +23,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-qrcode-svg": "^6.3.54",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
