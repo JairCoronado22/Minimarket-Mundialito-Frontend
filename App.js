@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import BarcodeBuilder from 'react-native-barcode-builder';
+import { Barcode } from 'expo-barcode-generator';
 import {
   API_BASE_URL,
   addProductStock,
@@ -2025,7 +2025,7 @@ export default function App() {
             <Text style={styles.qrModalCategory}>{product.category}</Text>
             <View style={styles.barcodeContainer}>
               {barcodeValue ? (
-                <BarcodeBuilder code={barcodeValue} format="ean13" width={240} height={80} />
+                <Barcode value={barcodeValue} options={{ format: 'EAN13', width: 240, height: 80 }} />
               ) : (
                 <Text style={styles.noBarcodeText}>Este producto no tiene código de barras asignado.</Text>
               )}
