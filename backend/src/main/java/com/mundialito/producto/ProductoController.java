@@ -1,7 +1,9 @@
 package com.mundialito.producto;
 
 import jakarta.annotation.PostConstruct;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,15 +45,11 @@ public class ProductoController {
 
         // Obtener todos los códigos existentes en un solo query para evitar N+1
         List<String> codigosExistentes = productoRepository.findAllCodigosBarras();
-        java.util.Set<String> codigosUsados = new java.util.HashSet<>(codigosExistentes);
+        Set<String> codigosUsados = new HashSet<>(codigosExistentes);
 
         int count = 0;
         for (Producto producto : sinCodigo) {
-            String codigo = generarCodigoBarras(producto.getId());
-            // Si el código generado ya existe, intentar con el siguiente ID disponible
-            while (codigosUsados.contains(codigo)) {
-                codigo = generarCodigoBarras(producto.getId() + count + 1000);
-            }
+            String codigo = generarCodigoBarrasDisponible(producto.getId(), codigosUsados);
             producto.setCodigoBarras(codigo);
             productoRepository.save(producto);
             codigosUsados.add(codigo);
@@ -66,7 +64,7 @@ public class ProductoController {
     private boolean esEan13Valido(String codigo) {
         if (codigo == null || codigo.length() != 13) return false;
         for (int i = 0; i < 13; i++) {
-            if (!Character.isDigit(codigo.charAt(i))) return false;
+            if (codigo.charAt(i) < '0' || codigo.charAt(i) > '9') return false;
         }
         // Verificar dígito verificador
         int sum = 0;
@@ -97,6 +95,7 @@ public class ProductoController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<Producto> crear(@Valid @RequestBody Producto producto) {
         producto.setId(null);
         Producto creado = guardar(producto);
@@ -130,14 +129,14 @@ public class ProductoController {
     @Transactional
     public ResponseEntity<String> regenerarCodigos() {
         int count = 0;
+        Set<String> codigosUsados = new HashSet<>(productoRepository.findAllCodigosBarras());
         for (Producto producto : productoRepository.findAll()) {
             if (producto.getCodigoBarras() == null || producto.getCodigoBarras().isBlank()) {
-                String codigo = generarCodigoBarras(producto.getId());
-                if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
-                    producto.setCodigoBarras(codigo);
-                    productoRepository.saveAndFlush(producto);
-                    count++;
-                }
+                String codigo = generarCodigoBarrasDisponible(producto.getId(), codigosUsados);
+                producto.setCodigoBarras(codigo);
+                productoRepository.saveAndFlush(producto);
+                codigosUsados.add(codigo);
+                count++;
             }
         }
         return ResponseEntity.ok("Se asignaron códigos de barras a " + count + " productos.");
@@ -161,7 +160,8 @@ public class ProductoController {
         if (producto.getCodigoBarras() == null) {
             // Guardar primero para obtener el ID de la base de datos
             Producto temporal = productoRepository.saveAndFlush(producto);
-            String codigoGenerado = generarCodigoBarras(temporal.getId());
+            Set<String> codigosUsados = new HashSet<>(productoRepository.findAllCodigosBarras());
+            String codigoGenerado = generarCodigoBarrasDisponible(temporal.getId(), codigosUsados);
             temporal.setCodigoBarras(codigoGenerado);
             return productoRepository.saveAndFlush(temporal);
         }
@@ -175,17 +175,32 @@ public class ProductoController {
 
     /**
      * Genera un código de barras EAN-13 con prefijo peruano (775) basado en el ID del producto.
-     * Formato: 7750000 + ID (rellenado con ceros para completar 12 dígitos) + dígito verificador.
+     * Formato: prefijo 775 + ID (rellenado a nueve dígitos) + dígito verificador.
      */
     private String generarCodigoBarras(Long id) {
-        // Prefijo peruano 775 + ceros + ID para formar 12 dígitos
-        String base = String.format("7750000%05d", id);
-        if (base.length() > 12) {
-            base = base.substring(0, 12);
+        if (id == null || id <= 0 || id > 999999999L) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No hay un correlativo disponible para generar un código EAN-13 único.");
         }
+
+        String base = "775" + String.format("%09d", id);
         // Calcular dígito verificador EAN-13
         int checksum = calcularDigitoVerificadorEan13(base);
         return base + checksum;
+    }
+
+    private String generarCodigoBarrasDisponible(Long id, Set<String> codigosUsados) {
+        long sequence = id;
+        while (sequence <= 999999999L) {
+            String codigo = generarCodigoBarras(sequence);
+            if (!codigosUsados.contains(codigo)) return codigo;
+            sequence++;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "No hay un correlativo disponible para generar un código EAN-13 único.");
     }
 
     private int calcularDigitoVerificadorEan13(String base12) {

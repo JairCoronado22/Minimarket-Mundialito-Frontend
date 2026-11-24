@@ -20,6 +20,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { toCanvas as bwipToCanvas } from '@bwip-js/browser';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { generateNextEan13, isValidEan13 } from './assets/js/ean13';
 import {
   API_BASE_URL,
   addProductStock,
@@ -43,7 +44,9 @@ const formatCurrency = (value) => `S/ ${Number(value || 0).toFixed(2)}`;
 
 function generateBarcodeDataUri(barcodeValue) {
   try {
-    const text = String(barcodeValue).padEnd(13, '0').slice(0, 13);
+    const text = String(barcodeValue);
+    if (typeof document === 'undefined' || !isValidEan13(text)) return null;
+
     // @bwip-js/browser usa Canvas API del navegador para generar PNG
     const canvas = document.createElement('canvas');
     bwipToCanvas(canvas, {
@@ -53,12 +56,28 @@ function generateBarcodeDataUri(barcodeValue) {
       height: 10,
       includetext: true,
       textxalign: 'center',
+      backgroundcolor: 'FFFFFF',
+      barcolor: '000000',
+      textcolor: '000000',
+      paddingwidth: 12,
+      paddingheight: 4,
     });
     return canvas.toDataURL('image/png');
   } catch (error) {
     console.warn('No se pudo generar el código de barras:', error);
     return null;
   }
+}
+
+function downloadBarcodeImage(dataUri, barcodeValue) {
+  if (Platform.OS !== 'web' || !dataUri || typeof document === 'undefined') return;
+
+  const link = document.createElement('a');
+  link.href = dataUri;
+  link.download = `codigo-barras-${barcodeValue}.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function getPredictiveAlerts(inventory, receipts, today = new Date()) {
@@ -176,6 +195,19 @@ export default function App() {
       return matchesCategory && matchesSearch;
     });
   }, [category, inventory, search]);
+  const suggestedBarcode = useMemo(
+    () => generateNextEan13(inventory.map((product) => product.barcode)),
+    [inventory],
+  );
+  const barcodePreview = newProductBarcode.trim() || suggestedBarcode;
+  const barcodePreviewIsValid = isValidEan13(barcodePreview);
+  const barcodePreviewImage = useMemo(
+    () =>
+      showNewProductForm && barcodePreviewIsValid
+        ? generateBarcodeDataUri(barcodePreview)
+        : null,
+    [barcodePreview, barcodePreviewIsValid, showNewProductForm],
+  );
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -725,6 +757,13 @@ export default function App() {
       setNewProductFeedback({ type: 'error', message: 'Ingresa un stock válido mayor o igual a cero.' });
       return;
     }
+    if (!isValidEan13(barcodePreview)) {
+      setNewProductFeedback({
+        type: 'error',
+        message: 'El código de barras debe tener 13 dígitos y un dígito verificador EAN-13 válido.',
+      });
+      return;
+    }
 
     try {
       const created = await createProduct({
@@ -732,7 +771,7 @@ export default function App() {
         category: newProductCategory.trim(),
         price,
         stock,
-        barcode: newProductBarcode.trim(),
+        barcode: barcodePreview,
       });
       setInventory((current) => [...current, created]);
       setNewProductFeedback({
@@ -1271,11 +1310,47 @@ export default function App() {
               <TextInput
                 accessibilityLabel="Código de barras (opcional)"
                 keyboardType="number-pad"
-                onChangeText={setNewProductBarcode}
+                onChangeText={(value) =>
+                  setNewProductBarcode(value.replace(/\D/g, '').slice(0, 13))
+                }
                 placeholder="Código de barras (opcional, se genera automáticamente)"
                 value={newProductBarcode}
                 style={styles.receiptInput}
               />
+            </View>
+            <View style={styles.newProductBarcodePreview}>
+              <Text style={styles.newProductBarcodeLabel}>
+                {newProductBarcode.trim() ? 'Vista previa del código ingresado' : 'Código EAN-13 autogenerado'}
+              </Text>
+              {barcodePreviewImage ? (
+                <View style={styles.newProductBarcodeImageContainer}>
+                  <Image
+                    source={{ uri: barcodePreviewImage }}
+                    style={styles.newProductBarcodeImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : (
+                <Text style={styles.newProductBarcodeError}>
+                  Ingresa 13 dígitos y un dígito verificador EAN-13 válido, o deja el campo vacío para autogenerarlo.
+                </Text>
+              )}
+              {barcodePreviewImage ? (
+                <>
+                  <Text style={styles.newProductBarcodeValue}>{barcodePreview}</Text>
+                  {Platform.OS === 'web' ? (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Descargar código de barras en PNG"
+                      onPress={() => downloadBarcodeImage(barcodePreviewImage, barcodePreview)}
+                      style={styles.downloadBarcodeButton}
+                    >
+                      <MaterialIcons name="download" size={16} color="#176B4D" />
+                      <Text style={styles.downloadBarcodeButtonText}>Descargar PNG</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              ) : null}
             </View>
             <View style={styles.newProductActions}>
               <TouchableOpacity
@@ -2440,6 +2515,14 @@ const styles = StyleSheet.create({
   newProductForm: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#C8D9D0', borderRadius: 15, padding: 14, marginBottom: 11 },
   newProductFormTitle: { color: '#172B4D', fontSize: 16, fontWeight: '800' },
   newProductFormHint: { color: '#64748B', fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
+  newProductBarcodePreview: { alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E1E7EF', borderRadius: 10, padding: 10, marginTop: 2 },
+  newProductBarcodeLabel: { color: '#475569', fontSize: 11, fontWeight: '700', marginBottom: 6 },
+  newProductBarcodeImageContainer: { width: '100%', backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 5 },
+  newProductBarcodeImage: { width: '100%', height: 82 },
+  newProductBarcodeValue: { color: '#172B4D', fontSize: 12, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
+  newProductBarcodeError: { color: '#9B2C2C', fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 8, paddingVertical: 12 },
+  downloadBarcodeButton: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E7F5ED', borderRadius: 8, paddingHorizontal: 10, marginTop: 7 },
+  downloadBarcodeButtonText: { color: '#176B4D', fontSize: 11, fontWeight: '700', marginLeft: 4 },
   newProductActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 },
   cancelNewProductButton: { minHeight: 40, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#F1F5F9', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   cancelNewProductText: { color: '#64748B', fontSize: 13, fontWeight: '700' },
