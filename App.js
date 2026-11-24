@@ -7,6 +7,7 @@ import {
   Animated,
   Image,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -18,6 +19,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import bwipJs from 'bwip-js';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   API_BASE_URL,
   addProductStock,
@@ -323,8 +325,20 @@ export default function App() {
     return () => animation.stop();
   }, [bellAnimation, predictiveAlerts.length]);
 
+  const zxingReaderRef = useRef(null);
+  const zxingStreamRef = useRef(null);
+  const zxingIntervalRef = useRef(null);
+
   const openCameraScanner = async () => {
     try {
+      if (Platform.OS === 'web') {
+        scanLock.current = false;
+        setScannedCode('');
+        setScanFeedback('Enfoca el código de barras del producto.');
+        setScannerActive(true);
+        return;
+      }
+
       const permission = cameraPermission?.granted
         ? cameraPermission
         : await requestCameraPermission();
@@ -369,8 +383,8 @@ export default function App() {
     });
   };
 
-  const handleBarcodeScanned = useCallback(
-    async ({ data }) => {
+  const processScannedCode = useCallback(
+    (data) => {
       if (scanLock.current) return;
 
       const now = Date.now();
@@ -403,6 +417,78 @@ export default function App() {
     },
     [cart, inventory],
   );
+
+  const handleBarcodeScanned = useCallback(
+    ({ data }) => {
+      processScannedCode(data);
+    },
+    [processScannedCode],
+  );
+
+  // ZXing web barcode scanner
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !scannerActive) return;
+
+    let reader = null;
+    let stream = null;
+    let video = null;
+    let interval = null;
+
+    async function startZxingScanner() {
+      try {
+        reader = new BrowserMultiFormatReader();
+        reader.timeBetweenScans = 300;
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+        });
+        zxingStreamRef.current = stream;
+
+        video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+        video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;';
+
+        const container = document.getElementById('zxing-video-container');
+        if (container) {
+          container.innerHTML = '';
+          container.appendChild(video);
+        }
+
+        interval = setInterval(() => {
+          if (!video || !reader) return;
+          reader.decodeFromVideoElement(video, false).then((result) => {
+            if (result) {
+              processScannedCode(result.getText());
+            }
+          }).catch(() => {
+            // No barcode found
+          });
+        }, 300);
+
+        zxingReaderRef.current = reader;
+        zxingIntervalRef.current = interval;
+      } catch (error) {
+        console.error('Error al iniciar ZXing scanner:', error);
+        setScannerActive(false);
+        setScanFeedback('No se pudo iniciar la cámara. Asegúrate de usar HTTPS y dar permisos.');
+      }
+    }
+
+    startZxingScanner();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      const container = document.getElementById('zxing-video-container');
+      if (container) container.innerHTML = '';
+      zxingReaderRef.current = null;
+      zxingStreamRef.current = null;
+      zxingIntervalRef.current = null;
+    };
+  }, [scannerActive, processScannedCode]);
 
   const updateQuantity = (productId, delta) => {
     setCart((currentCart) =>
@@ -646,12 +732,12 @@ export default function App() {
         category: newProductCategory.trim(),
         price,
         stock,
-        barcode: newProductBarcode.trim(),
+        codigoBarras: newProductBarcode.trim(),
       });
       setInventory((current) => [...current, created]);
       setNewProductFeedback({
         type: 'success',
-        message: `${created.name} creado exitosamente con código de barras ${created.barcode || 'auto-generado'}.`,
+        message: `${created.name} creado exitosamente con código de barras ${created.codigoBarras || 'auto-generado'}.`,
       });
       setNewProductName('');
       setNewProductCategory('');
@@ -1445,21 +1531,32 @@ export default function App() {
             </Text>
             {scannerActive ? (
               <View style={styles.cameraPreview}>
-                <CameraView
-                  accessibilityLabel="Cámara para escanear productos"
-                  barcodeScannerSettings={{
-                    barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'],
-                  }}
-                  facing="back"
-                  onBarcodeScanned={handleBarcodeScanned}
-                  onMountError={({ message }) => {
-                    console.error('No se pudo iniciar la cámara:', message);
-                    setScannerActive(false);
-                    setScanFeedback('No se pudo iniciar la cámara. Comprueba los permisos e inténtalo de nuevo.');
-                  }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-                <View pointerEvents="none" style={styles.cameraFrame} />
+                {Platform.OS === 'web' ? (
+                  <View
+                    collapsable={false}
+                    style={{ width: '100%', height: '100%' }}
+                    id="zxing-video-container"
+                    accessibilityLabel="Vista previa de la cámara para escanear"
+                  />
+                ) : (
+                  <>
+                    <CameraView
+                      accessibilityLabel="Cámara para escanear productos"
+                      barcodeScannerSettings={{
+                        barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'],
+                      }}
+                      facing="back"
+                      onBarcodeScanned={handleBarcodeScanned}
+                      onMountError={({ message }) => {
+                        console.error('No se pudo iniciar la cámara:', message);
+                        setScannerActive(false);
+                        setScanFeedback('No se pudo iniciar la cámara. Comprueba los permisos e inténtalo de nuevo.');
+                      }}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    <View pointerEvents="none" style={styles.cameraFrame} />
+                  </>
+                )}
               </View>
             ) : (
               <TouchableOpacity
@@ -2036,7 +2133,7 @@ export default function App() {
   const renderProductBarcodeModal = () => {
     const product = inventory.find((p) => String(p.id) === String(qrProductId));
     if (!product || !showQrModal) return null;
-    const barcodeValue = product.barcode;
+    const barcodeValue = product.codigoBarras;
     const barcodeImageUri = barcodeValue ? generateBarcodeDataUri(barcodeValue) : null;
     return (
       <Modal visible={showQrModal} animationType="fade" transparent>
