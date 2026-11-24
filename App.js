@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
   ActivityIndicator,
   Animated,
@@ -113,7 +112,6 @@ function getPredictiveAlerts(inventory, receipts, today = new Date()) {
 
 export default function App() {
   const { width } = useWindowDimensions();
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const isWide = width >= 700;
   const [screen, setScreen] = useState('login');
   const [activeRole, setActiveRole] = useState('cashier');
@@ -323,61 +321,19 @@ export default function App() {
     return () => animation.stop();
   }, [bellAnimation, predictiveAlerts.length]);
 
+  const html5ScannerRef = useRef(null);
+
   const openCameraScanner = async () => {
     try {
-      const permission = cameraPermission?.granted
-        ? cameraPermission
-        : await requestCameraPermission();
-      if (!permission.granted) {
-        setScannerActive(false);
-        setScanFeedback('Se necesita permiso de cámara para escanear productos.');
-        return;
-      }
-
       scanLock.current = false;
       setScannedCode('');
-      setScanFeedback('Enfoca el código de barras o QR del producto.');
+      setScanFeedback('Enfoca el código de barras del producto.');
       setScannerActive(true);
     } catch (error) {
       console.error('No se pudo solicitar acceso a la cámara:', error);
       setScannerActive(false);
       setScanFeedback('No se pudo abrir la cámara. Revisa los permisos del dispositivo.');
     }
-  };
-
-  const handleBarcodeScanned = async ({ data }) => {
-    if (scanLock.current) return;
-
-    // Cooldown de 2 segundos para evitar lecturas repetidas
-    // eslint-disable-next-line react-hooks/purity -- called inside an event handler, not during render
-    const now = Date.now();
-    if (now - lastScanTimeRef.current < 2000) {
-      return;
-    }
-
-    scanLock.current = true;
-    setScannerActive(false);
-    setScannedCode(data);
-
-    // Buscar producto por código de barras (EAN-13)
-    const product = inventory.find((p) => String(p.codigoBarras) === String(data));
-
-    if (!product) {
-      setScanFeedback(`Código ${data} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
-      scanLock.current = false;
-      return;
-    }
-
-    const quantityInCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
-    if (quantityInCart >= product.stock) {
-      setScanFeedback(`${product.name} ya no tiene stock disponible.`);
-      scanLock.current = false;
-      return;
-    }
-
-    addToCart(product);
-    lastScanTimeRef.current = now;
-    setScanFeedback(`Escaneado: ${product.name} (+1)`);
   };
 
   const generateBarcode = (productId) => {
@@ -403,6 +359,115 @@ export default function App() {
       return [...currentCart, { ...product, quantity: 1 }];
     });
   };
+
+  const handleBarcodeScanned = useCallback(
+    async ({ data }) => {
+      if (scanLock.current) return;
+
+      const now = Date.now();
+      if (now - lastScanTimeRef.current < 2000) {
+        return;
+      }
+
+      scanLock.current = true;
+      setScannerActive(false);
+      setScannedCode(data);
+
+      const product = inventory.find((p) => String(p.codigoBarras) === String(data));
+
+      if (!product) {
+        setScanFeedback(`Código ${data} no encontrado en el catálogo. Verifica que el producto esté registrado.`);
+        scanLock.current = false;
+        return;
+      }
+
+      const quantityInCart = cart.find((item) => item.id === product.id)?.quantity ?? 0;
+      if (quantityInCart >= product.stock) {
+        setScanFeedback(`${product.name} ya no tiene stock disponible.`);
+        scanLock.current = false;
+        return;
+      }
+
+      addToCart(product);
+      lastScanTimeRef.current = now;
+      setScanFeedback(`Escaneado: ${product.name} (+1)`);
+    },
+    [cart, inventory],
+  );
+
+  useEffect(() => {
+    if (!scannerActive) return;
+
+    const onScanSuccess = (decodedText) => {
+      handleBarcodeScanned({ data: decodedText });
+    };
+
+    const onScanFailure = () => {
+      // Ignorar errores de escaneo continuo
+    };
+
+    let scanner = null;
+    let videoTrack = null;
+
+    async function startScanner() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+        videoTrack = stream.getVideoTracks()[0];
+
+        // Intentar configurar enfoque continuo
+        if (videoTrack && videoTrack.applyConstraints) {
+          try {
+            await videoTrack.applyConstraints({
+              advanced: [{ focusMode: 'continuous' }],
+            });
+          } catch (focusError) {
+            console.warn('No se pudo configurar enfoque continuo:', focusError);
+          }
+        }
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+
+        const { Html5Qrcode } = await import('html5-qrcode');
+        scanner = new Html5Qrcode(
+          'html5qr-scanner-video-container',
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          false,
+        );
+        html5ScannerRef.current = scanner;
+
+        await scanner.start(
+          stream,
+          { aspectRatio: 16 / 9, echoVideo: true },
+          onScanSuccess,
+          onScanFailure,
+        );
+      } catch (error) {
+        console.error('Error al iniciar la cámara:', error);
+        setScannerActive(false);
+        setScanFeedback('No se pudo iniciar la cámara. Asegúrate de usar HTTPS y dar permisos.');
+      }
+    }
+
+    startScanner();
+
+    return () => {
+      if (scanner) {
+        try { scanner.stop().catch(() => {}); } catch {}
+      }
+      if (videoTrack) {
+        videoTrack.stop();
+      }
+      html5ScannerRef.current = null;
+    };
+  }, [scannerActive, handleBarcodeScanned]);
 
   const updateQuantity = (productId, delta) => {
     setCart((currentCart) =>
@@ -1445,21 +1510,12 @@ export default function App() {
             </Text>
             {scannerActive ? (
               <View style={styles.cameraPreview}>
-                <CameraView
-                  accessibilityLabel="Cámara para escanear productos"
-                  barcodeScannerSettings={{
-                    barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'],
-                  }}
-                  facing="back"
-                  onBarcodeScanned={handleBarcodeScanned}
-                  onMountError={({ message }) => {
-                    console.error('No se pudo iniciar la cámara:', message);
-                    setScannerActive(false);
-                    setScanFeedback('No se pudo iniciar la cámara. Comprueba los permisos e inténtalo de nuevo.');
-                  }}
-                  style={StyleSheet.absoluteFillObject}
+                <View
+                  collapsable={false}
+                  style={{ width: '100%', height: '100%' }}
+                  id="html5qr-scanner-video-container"
+                  accessibilityLabel="Vista previa de la cámara para escanear"
                 />
-                <View pointerEvents="none" style={styles.cameraFrame} />
               </View>
             ) : (
               <TouchableOpacity
@@ -1469,7 +1525,7 @@ export default function App() {
               >
                 <MaterialIcons name="photo-camera" size={19} color="#fff" />
                 <Text style={styles.scanActionText}>
-                  {cameraPermission?.granted ? 'Abrir cámara' : 'Dar permiso y abrir cámara'}
+                  Abrir cámara
                 </Text>
               </TouchableOpacity>
             )}
