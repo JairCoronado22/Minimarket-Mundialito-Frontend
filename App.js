@@ -1904,14 +1904,18 @@ export default function App() {
     );
   };
 
-  if (screen === 'login') return renderLoginScreen();
-  if (screen === 'dashboard') return renderDashboardScreen();
-  if (screen === 'inventory') return renderInventoryScreen();
-  if (screen === 'ia') return renderIAScreen();
-  if (screen === 'receipt') return renderReceiptScreen();
+  const renderCurrentScreen = () => {
+    if (screen === 'login') return renderLoginScreen();
+    if (screen === 'dashboard') return renderDashboardScreen();
+    if (screen === 'inventory') return renderInventoryScreen();
+    if (screen === 'ia') return renderIAScreen();
+    if (screen === 'receipt') return renderReceiptScreen();
+    return renderPosScreen();
+  };
+
   return (
     <View style={{ flex: 1 }}>
-      {renderPosScreen()}
+      {renderCurrentScreen()}
       {renderYapeWaitingModal()}
       {renderProductQrModal()}
     </View>
