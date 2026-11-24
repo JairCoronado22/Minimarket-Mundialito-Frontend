@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Barcode from 'react-native-barcode-expo';
+import BarcodeBuilder from 'react-native-barcode-builder';
 import {
   API_BASE_URL,
   addProductStock,
@@ -2016,7 +2016,7 @@ export default function App() {
   const renderProductBarcodeModal = () => {
     const product = inventory.find((p) => String(p.id) === String(qrProductId));
     if (!product || !showQrModal) return null;
-    const barcodeValue = product.codigoBarras;
+    const barcodeValue = product.barcode;
     return (
       <Modal visible={showQrModal} animationType="fade" transparent>
         <View style={styles.qrModalOverlay}>
@@ -2025,7 +2025,7 @@ export default function App() {
             <Text style={styles.qrModalCategory}>{product.category}</Text>
             <View style={styles.barcodeContainer}>
               {barcodeValue ? (
-                <Barcode value={barcodeValue} format="EAN13" width={240} height={80} />
+                <BarcodeBuilder code={barcodeValue} format="ean13" width={240} height={80} />
               ) : (
                 <Text style={styles.noBarcodeText}>Este producto no tiene código de barras asignado.</Text>
               )}

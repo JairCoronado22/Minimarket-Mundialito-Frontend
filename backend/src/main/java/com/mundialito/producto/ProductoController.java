@@ -1,5 +1,6 @@
 package com.mundialito.producto;
 
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -26,6 +27,26 @@ public class ProductoController {
 
     public ProductoController(ProductoRepository productoRepository) {
         this.productoRepository = productoRepository;
+    }
+
+    @PostConstruct
+    @Transactional
+    public void asignarCodigosFaltantes() {
+        int count = 0;
+        for (Producto producto : productoRepository.findAll()) {
+            if (producto.getCodigoBarras() == null || producto.getCodigoBarras().isBlank()) {
+                String codigo = generarCodigoBarras(producto.getId());
+                // Verificar que no exista ya
+                if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
+                    producto.setCodigoBarras(codigo);
+                    productoRepository.saveAndFlush(producto);
+                    count++;
+                }
+            }
+        }
+        if (count > 0) {
+            System.out.println("[ProductoController] Se asignaron códigos de barras a " + count + " productos sin código.");
+        }
     }
 
     @GetMapping
@@ -73,6 +94,23 @@ public class ProductoController {
                     "El stock supera el límite permitido.", exception);
         }
         return productoRepository.saveAndFlush(producto);
+    }
+
+    @PostMapping("/regenerar-codigos")
+    @Transactional
+    public ResponseEntity<String> regenerarCodigos() {
+        int count = 0;
+        for (Producto producto : productoRepository.findAll()) {
+            if (producto.getCodigoBarras() == null || producto.getCodigoBarras().isBlank()) {
+                String codigo = generarCodigoBarras(producto.getId());
+                if (productoRepository.findByCodigoBarras(codigo).isEmpty()) {
+                    producto.setCodigoBarras(codigo);
+                    productoRepository.saveAndFlush(producto);
+                    count++;
+                }
+            }
+        }
+        return ResponseEntity.ok("Se asignaron códigos de barras a " + count + " productos.");
     }
 
     @DeleteMapping("/{id}")
